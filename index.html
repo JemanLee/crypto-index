@@ -539,28 +539,6 @@ function getBtcIndicators() {
       detail:'RSI(Relative Strength Index)가 30 이하면 과매도 상태. 14일간 하락 압력이 극단적으로 누적된 상태로, 기술적 반등 가능성이 높아지는 구간.',
     },
     {
-      name:'Top Trader Long/Short',
-      stars:'★★★★☆',
-      thr:'≤ 0.85 = 숏 과잉 (역발상 매수)',
-      status: loading(D.btcLongShort) || sig(D.btcLongShort<=0.85, D.btcLongShort<=1.0),
-      value: D.btcLongShort!=null ? D.btcLongShort.toFixed(2) : null,
-      desc: D.btcLongShort!=null
-        ? (D.btcLongShort<=0.85?'숏 과잉 — 스퀴즈 가능 🔴':D.btcLongShort<=1.0?'숏 우세 ⚠️':`롱 우세 ${D.btcLongShort.toFixed(2)}`)
-        : '로딩 중...',
-      detail:'바이낸스 선물 상위 트레이더의 롱/숏 비율. 1 미만이면 숏이 더 많다는 뜻. 극단적 숏 과잉은 숏스퀴즈로 이어질 수 있음.',
-    },
-    {
-      name:'24h 급락 (패닉셀링)',
-      stars:'★★★★☆',
-      thr:'≤ -10% = 패닉 매도',
-      status: loading(D.btcChange24h) || sig(D.btcChange24h<=-10, D.btcChange24h<=-5),
-      value: D.btcChange24h!=null ? D.btcChange24h.toFixed(2)+'%' : null,
-      desc: D.btcChange24h!=null
-        ? (D.btcChange24h<=-10?'패닉셀링 감지 🔴':D.btcChange24h<=-5?'급락 진행 ⚠️':`${D.btcChange24h.toFixed(2)}% — 정상`)
-        : '로딩 중...',
-      detail:'24시간 내 -10% 이상 급락은 패닉셀링을 의미. 역사적으로 극단적 단기 하락 후 강한 반등이 자주 발생.',
-    },
-    {
       name:'Price Z-Score (365일)',
       stars:'★★★★★',
       thr:'≤ -1.0 = 바닥권 (저평가)',
@@ -651,28 +629,6 @@ function getEthIndicators() {
         ? (D.ethRsi<=30?'과매도 — 반등 가능성 높음 🔴':D.ethRsi<=40?'약세 구간 ⚠️':`RSI ${D.ethRsi.toFixed(1)} — 정상`)
         : '로딩 중...',
       detail:'RSI 30 이하는 극단적 과매도. ETH는 변동성이 커서 RSI가 BTC보다 더 극단값에 자주 도달함.',
-    },
-    {
-      name:'Top Trader Long/Short',
-      stars:'★★★★☆',
-      thr:'≤ 0.85 = 숏 과잉 (역발상 매수)',
-      status: loading(D.ethLongShort) || sig(D.ethLongShort<=0.85, D.ethLongShort<=1.0),
-      value: D.ethLongShort!=null ? D.ethLongShort.toFixed(2) : null,
-      desc: D.ethLongShort!=null
-        ? (D.ethLongShort<=0.85?'숏 과잉 — 스퀴즈 가능 🔴':D.ethLongShort<=1.0?'숏 우세 ⚠️':`롱 우세 ${D.ethLongShort.toFixed(2)}`)
-        : '로딩 중...',
-      detail:'바이낸스 상위 트레이더 롱/숏 비율. 숏 과잉 시 역발상 매수 기회.',
-    },
-    {
-      name:'24h 급락 (패닉셀링)',
-      stars:'★★★★☆',
-      thr:'≤ -12% = 패닉 매도',
-      status: loading(D.ethChange24h) || sig(D.ethChange24h<=-12, D.ethChange24h<=-7),
-      value: D.ethChange24h!=null ? D.ethChange24h.toFixed(2)+'%' : null,
-      desc: D.ethChange24h!=null
-        ? (D.ethChange24h<=-12?'패닉셀링 감지 🔴':D.ethChange24h<=-7?'급락 진행 ⚠️':`${D.ethChange24h.toFixed(2)}% — 정상`)
-        : '로딩 중...',
-      detail:'ETH는 BTC보다 변동성이 커서 -12% 기준 적용. 극단적 단기 하락 후 반등 확률이 높음.',
     },
     {
       name:'Price Z-Score (365일)',

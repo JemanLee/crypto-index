@@ -272,7 +272,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 <div class="scores">
   <div class="score-card btc">
     <div class="sc-lbl">BTC SIGNALS</div>
-    <div class="sc-num" id="btcScoreNum">--<span class="mx">/6</span></div>
+    <div class="sc-num" id="btcScoreNum">--<span class="mx">/5</span></div>
     <div class="sc-tag" id="btcTag">분석 중</div>
   </div>
   <div class="score-card eth">
@@ -286,7 +286,6 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 <div class="tabs">
   <div class="tab on" onclick="switchTab('btc',this)">₿ BTC</div>
   <div class="tab" onclick="switchTab('eth',this)">Ξ ETH</div>
-  <div class="tab" onclick="switchTab('mkt',this)">📊 시장</div>
 </div>
 
 <!-- BTC PANE -->
@@ -296,7 +295,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
       <span style="font-size:15px">🟠</span>
       <span class="sec-title">BTC 바닥 지표</span>
       <span class="sec-badge badge-live">● LIVE</span>
-      <span class="sec-badge badge-count" id="btcCount">--/6</span>
+      <span class="sec-badge badge-count" id="btcCount">--/5</span>
     </div>
     <div class="ind-list" id="btcList"></div>
   </div>
@@ -315,37 +314,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
   </div>
 </div>
 
-<!-- MARKET PANE -->
-<div class="pane" id="pane-mkt">
-  <div class="sec">
-    <div class="sec-hdr">
-      <span style="font-size:15px">📈</span>
-      <span class="sec-title">시장 심리</span>
-      <span class="sec-badge badge-live">● LIVE</span>
-    </div>
-    <div class="ind-list" id="mktList"></div>
-  </div>
 
-  <div class="sec">
-    <div class="sec-hdr">
-      <span style="font-size:15px">📉</span>
-      <span class="sec-title">선물 / 파생</span>
-      <span class="sec-badge badge-live">● LIVE</span>
-    </div>
-    <div class="ind-list" id="fudList"></div>
-  </div>
-
-  <div class="links-panel">
-    <div class="links-title">🔗 온체인 지표 (무료 직접 확인)</div>
-    <div class="link-row"><span class="link-name">MVRV · Puell · Pi Cycle</span><a class="link-a" href="https://www.lookintobitcoin.com" target="_blank">열기 →</a></div>
-    <div class="link-row"><span class="link-name">SOPR · Exchange Reserve</span><a class="link-a" href="https://cryptoquant.com" target="_blank">열기 →</a></div>
-    <div class="link-row"><span class="link-name">Put/Call · IV · Skew</span><a class="link-a" href="https://greeks.live" target="_blank">열기 →</a></div>
-    <div class="link-row"><span class="link-name">Liquidation Heatmap</span><a class="link-a" href="https://coinglass.com" target="_blank">열기 →</a></div>
-    <div class="link-row"><span class="link-name">Bitfinex Longs/Shorts</span><a class="link-a" href="https://coinglass.com/BitfinexLongs" target="_blank">열기 →</a></div>
-    <div class="link-row"><span class="link-name">HODL Waves · LTH-SOPR</span><a class="link-a" href="https://glassnode.com" target="_blank">열기 →</a></div>
-    <div class="link-row"><span class="link-name">Google Trends: Bitcoin</span><a class="link-a" href="https://trends.google.com/trends/explore?q=bitcoin" target="_blank">열기 →</a></div>
-  </div>
-</div>
 
 <div class="footer">
   무료 API: CoinGecko · Binance · Alternative.me<br>
@@ -364,7 +333,6 @@ const D = {
   btcChange24h:null, ethChange24h:null,
   btcAth:null, ethAth:null,
   btcMcap:null, ethMcap:null, totalMcap:null,
-  btcDom:null,
   btcMa200:null, ethMa200:null,
   btcFunding:null, ethFunding:null,
   fearGreed:null, fearGreedLabel:null,
@@ -406,7 +374,6 @@ async function fetchGlobal() {
   const r = await fetch('https://api.coingecko.com/api/v3/global');
   const g = (await r.json()).data;
   D.totalMcap = g?.total_market_cap?.usd;
-  D.btcDom = g?.market_cap_percentage?.btc;
 }
 
 async function fetchFearGreed() {
@@ -491,11 +458,11 @@ function getBtcIndicators() {
     {
       name:'Funding Rate (BTC)',
       stars:'★★★★★',
-      thr:'< -0.05% 지속 = 숏 과잉',
-      status: loading(D.btcFunding) || sig(D.btcFunding<=-0.001, D.btcFunding<0),
+      thr:'< -0.03% = 숏 과잉',
+      status: loading(D.btcFunding) || sig(D.btcFunding<=-0.0003, D.btcFunding<=-0.0001),
       value: D.btcFunding!=null ? (D.btcFunding*100).toFixed(4)+'%' : null,
       desc: D.btcFunding!=null
-        ? (D.btcFunding<=-0.001?'숏스퀴즈 임박 🔴':D.btcFunding<0?'음수 펀딩 ⚠️':'정상 구간')
+        ? (D.btcFunding<=-0.0003?'숏스퀴즈 임박 🔴':D.btcFunding<=-0.0001?'음수 펀딩 ⚠️':'정상 구간')
         : '로딩 중...',
     },
     {
@@ -515,14 +482,6 @@ function getBtcIndicators() {
       desc: (stable&&D.btcMcap)
         ? `Stable $${fmtB(stable)} / BTC $${fmtB(D.btcMcap)}`
         : '로딩 중...',
-    },
-    {
-      name:'전체 크립토 시총',
-      stars:'★★★★☆',
-      thr:'< $1.2T = 시장 저평가',
-      status: loading(D.totalMcap) || sig(D.totalMcap<=1.2e12, D.totalMcap<=1.8e12),
-      value: D.totalMcap ? '$'+fmtB(D.totalMcap) : null,
-      desc: D.totalMcap ? `전체 $${fmtB(D.totalMcap)}` : '로딩 중...',
     },
   ];
 }
@@ -551,11 +510,11 @@ function getEthIndicators() {
     {
       name:'Funding Rate (ETH)',
       stars:'★★★★★',
-      thr:'< -0.05% = 숏 과잉',
-      status: loading(D.ethFunding) || sig(D.ethFunding<=-0.001, D.ethFunding<0),
+      thr:'< -0.03% = 숏 과잉',
+      status: loading(D.ethFunding) || sig(D.ethFunding<=-0.0003, D.ethFunding<=-0.0001),
       value: D.ethFunding!=null ? (D.ethFunding*100).toFixed(4)+'%' : null,
       desc: D.ethFunding!=null
-        ? (D.ethFunding<=-0.001?'숏스퀴즈 임박 🔴':D.ethFunding<0?'음수 펀딩 ⚠️':'정상')
+        ? (D.ethFunding<=-0.0003?'숏스퀴즈 임박 🔴':D.ethFunding<=-0.0001?'음수 펀딩 ⚠️':'정상')
         : '로딩 중...',
     },
     {
@@ -598,68 +557,7 @@ function getEthIndicators() {
   ];
 }
 
-function getMktIndicators() {
-  return [
-    {
-      name:'Fear & Greed Index',
-      stars:'★★★★★',
-      thr:'≤ 10 = 극도의 공포',
-      status: loading(D.fearGreed) || sig(D.fearGreed<=20, D.fearGreed<=35),
-      value: D.fearGreed!=null ? `${Math.round(D.fearGreed)}/100` : null,
-      desc: D.fearGreed!=null ? `${D.fearGreedLabel}` : '로딩 중...',
-    },
-    {
-      name:'전체 크립토 시총',
-      stars:'★★★★☆',
-      thr:'< $1.2T = 시장 저평가',
-      status: loading(D.totalMcap) || sig(D.totalMcap<=1.2e12, D.totalMcap<=1.8e12),
-      value: D.totalMcap ? '$'+fmtB(D.totalMcap) : null,
-      desc: D.totalMcap ? `시총 $${fmtB(D.totalMcap)}` : '로딩 중...',
-    },
-    {
-      name:'BTC 도미넌스',
-      stars:'★★★☆☆',
-      thr:'> 60% = 위험자산 회피',
-      status: loading(D.btcDom) || sig(D.btcDom>=60, D.btcDom>=55),
-      value: D.btcDom!=null ? D.btcDom.toFixed(1)+'%' : null,
-      desc: D.btcDom!=null ? `BTC 점유율 ${D.btcDom.toFixed(1)}%` : '로딩 중...',
-    },
-    {
-      name:'Stablecoin 총 시총',
-      stars:'★★★★☆',
-      thr:'> $150B = 대기매수 자금 풍부',
-      status: loading(D.stableCap) || sig(D.stableCap>=1.5e11, D.stableCap>=1e11),
-      value: D.stableCap ? '$'+fmtB(D.stableCap) : null,
-      desc: D.stableCap ? `USDT+USDC $${fmtB(D.stableCap)}` : '로딩 중...',
-    },
-  ];
-}
 
-function getFudIndicators() {
-  return [
-    {
-      name:'BTC Funding Rate',
-      stars:'★★★★★',
-      thr:'< -0.05% 지속 = 숏스퀴즈 직전',
-      status: loading(D.btcFunding) || sig(D.btcFunding<=-0.001, D.btcFunding<0),
-      value: D.btcFunding!=null ? (D.btcFunding*100).toFixed(4)+'%' : null,
-      desc: D.btcFunding!=null
-        ? (D.btcFunding<=-0.001?'🔴 극단적 숏 과잉':D.btcFunding<0?'⚠️ 음수 펀딩':'정상')
-        : '로딩 중...',
-    },
-    {
-      name:'ETH Funding Rate',
-      stars:'★★★★★',
-      thr:'< -0.05% = 숏 과잉',
-      status: loading(D.ethFunding) || sig(D.ethFunding<=-0.001, D.ethFunding<0),
-      value: D.ethFunding!=null ? (D.ethFunding*100).toFixed(4)+'%' : null,
-      desc: D.ethFunding!=null
-        ? (D.ethFunding<=-0.001?'🔴 극단적 숏 과잉':D.ethFunding<0?'⚠️ 음수 펀딩':'정상')
-        : '로딩 중...',
-    },
-
-  ];
-}
 
 // ═══════════════════════════════════════════════
 //  RENDER
@@ -718,17 +616,15 @@ function renderAll() {
   // indicators
   const btcA = renderList('btcList', getBtcIndicators());
   const ethA = renderList('ethList', getEthIndicators());
-  renderList('mktList', getMktIndicators());
-  renderList('fudList', getFudIndicators());
 
   // scores
-  const btcT = getTag(btcA, 6);
-  document.getElementById('btcScoreNum').innerHTML = `${btcA}<span class="mx">/6</span>`;
+  const btcT = getTag(btcA, 5);
+  document.getElementById('btcScoreNum').innerHTML = `${btcA}<span class="mx">/5</span>`;
   const btcTagEl = document.getElementById('btcTag');
   btcTagEl.textContent = btcT.txt;
   btcTagEl.style.background = btcT.color;
   btcTagEl.style.color = btcT.textColor;
-  document.getElementById('btcCount').textContent = `${btcA}/6 활성`;
+  document.getElementById('btcCount').textContent = `${btcA}/5 활성`;
 
   const ethT = getTag(ethA, 7);
   document.getElementById('ethScoreNum').innerHTML = `${ethA}<span class="mx">/7</span>`;
@@ -743,18 +639,18 @@ function renderAll() {
   const box = document.getElementById('alertBox');
   const title = document.getElementById('alertTitle');
   const body = document.getElementById('alertBody');
-  if (total >= 8) {
+  if (total >= 7) {
     box.className='alert hot';
     title.textContent='🚨 복합 바닥 신호 강하게 감지!';
-    body.textContent=`BTC ${btcA}/6 + ETH ${ethA}/7 신호 동시 충족. 역사적 바닥권 진입 가능성. 분할 매수 검토.`;
+    body.textContent=`BTC ${btcA}/5 + ETH ${ethA}/7 신호 동시 충족. 역사적 바닥권 진입 가능성. 분할 매수 검토.`;
   } else if (total >= 4) {
     box.className='alert warm';
     title.textContent='⚠️ 일부 바닥 신호 감지 중';
-    body.textContent=`BTC ${btcA}/6 + ETH ${ethA}/7 신호 충족. 추가 지표 모니터링 권장.`;
+    body.textContent=`BTC ${btcA}/5 + ETH ${ethA}/7 신호 충족. 추가 지표 모니터링 권장.`;
   } else {
     box.className='alert';
     title.textContent='📡 현재 바닥 신호 없음';
-    body.textContent=`BTC ${btcA}/6, ETH ${ethA}/7 신호만 충족. 일반 시장 상황.`;
+    body.textContent=`BTC ${btcA}/5, ETH ${ethA}/7 신호만 충족. 일반 시장 상황.`;
   }
 
   // time

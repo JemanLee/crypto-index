@@ -272,12 +272,12 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 <div class="scores">
   <div class="score-card btc">
     <div class="sc-lbl">BTC SIGNALS</div>
-    <div class="sc-num" id="btcScoreNum">--<span class="mx">/9</span></div>
+    <div class="sc-num" id="btcScoreNum">--<span class="mx">/10</span></div>
     <div class="sc-tag" id="btcTag">분석 중</div>
   </div>
   <div class="score-card eth">
     <div class="sc-lbl">ETH SIGNALS</div>
-    <div class="sc-num" id="ethScoreNum">--<span class="mx">/11</span></div>
+    <div class="sc-num" id="ethScoreNum">--<span class="mx">/12</span></div>
     <div class="sc-tag" id="ethTag">분석 중</div>
   </div>
 </div>
@@ -295,7 +295,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
       <span style="font-size:15px">🟠</span>
       <span class="sec-title">BTC 바닥 지표</span>
       <span class="sec-badge badge-live">● LIVE</span>
-      <span class="sec-badge badge-count" id="btcCount">--/9</span>
+      <span class="sec-badge badge-count" id="btcCount">--/10</span>
     </div>
     <div class="ind-list" id="btcList"></div>
   </div>
@@ -308,7 +308,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
       <span style="font-size:15px">🔵</span>
       <span class="sec-title">ETH 바닥 지표</span>
       <span class="sec-badge badge-live">● LIVE</span>
-      <span class="sec-badge badge-count" id="ethCount">--/11</span>
+      <span class="sec-badge badge-count" id="ethCount">--/12</span>
     </div>
     <div class="ind-list" id="ethList"></div>
   </div>
@@ -334,10 +334,12 @@ const D = {
   btcAth:null, ethAth:null,
   btcMcap:null, ethMcap:null, totalMcap:null,
   btcMa200:null, ethMa200:null,
+  btcMa200w:null, ethMa200w:null,
   btcRsi:null, ethRsi:null,
   btcFunding:null, ethFunding:null,
-  btcLongShort:null, ethLongShort:null,
   btcZScore:null, ethZScore:null,
+  btcBBPercent:null, ethBBPercent:null,
+  btcOIChange:null, ethOIChange:null,
   fearGreed:null, fearGreedLabel:null,
   stableCap:null,
 };
@@ -423,6 +425,18 @@ function calcZScore(closes) {
   return (closes[closes.length-1] - mean) / std;
 }
 
+function calcBollingerPctB(closes, period=20, k=2) {
+  if (closes.length < period) return null;
+  const slice = closes.slice(-period);
+  const mean = slice.reduce((a,b)=>a+b,0)/period;
+  const variance = slice.reduce((s,v)=>s+(v-mean)**2,0)/period;
+  const std = Math.sqrt(variance);
+  if (std===0) return 0.5;
+  const upper = mean + k*std;
+  const lower = mean - k*std;
+  return (closes[closes.length-1] - lower) / (upper - lower);
+}
+
 async function fetchKlines() {
   const [rb, re] = await Promise.all([
     fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=365'),
@@ -436,6 +450,7 @@ async function fetchKlines() {
     D.btcMa200 = last200.reduce((a,b)=>a+b,0)/last200.length;
     D.btcRsi = calcRSI(c);
     D.btcZScore = calcZScore(c);
+    D.btcBBPercent = calcBollingerPctB(c);
   }
   if (Array.isArray(ke) && ke.length >= 200) {
     const c = ke.map(k => parseFloat(k[4]));
@@ -443,18 +458,44 @@ async function fetchKlines() {
     D.ethMa200 = last200.reduce((a,b)=>a+b,0)/last200.length;
     D.ethRsi = calcRSI(c);
     D.ethZScore = calcZScore(c);
+    D.ethBBPercent = calcBollingerPctB(c);
   }
 }
 
-async function fetchLongShort() {
+async function fetchWeeklyKlines() {
   const [rb, re] = await Promise.all([
-    fetch('https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol=BTCUSDT&period=1h&limit=1'),
-    fetch('https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol=ETHUSDT&period=1h&limit=1'),
+    fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1w&limit=200'),
+    fetch('https://api.binance.com/api/v3/klines?symbol=ETHUSDT&interval=1w&limit=200'),
+  ]);
+  const kb = await rb.json();
+  const ke = await re.json();
+  if (Array.isArray(kb) && kb.length >= 200) {
+    const c = kb.map(k => parseFloat(k[4]));
+    D.btcMa200w = c.reduce((a,b)=>a+b,0)/c.length;
+  }
+  if (Array.isArray(ke) && ke.length >= 200) {
+    const c = ke.map(k => parseFloat(k[4]));
+    D.ethMa200w = c.reduce((a,b)=>a+b,0)/c.length;
+  }
+}
+
+async function fetchOIHistory() {
+  const [rb, re] = await Promise.all([
+    fetch('https://fapi.binance.com/futures/data/openInterestHist?symbol=BTCUSDT&period=1d&limit=8'),
+    fetch('https://fapi.binance.com/futures/data/openInterestHist?symbol=ETHUSDT&period=1d&limit=8'),
   ]);
   const db = await rb.json();
   const de = await re.json();
-  if (Array.isArray(db) && db[0]) D.btcLongShort = parseFloat(db[0].longShortRatio);
-  if (Array.isArray(de) && de[0]) D.ethLongShort = parseFloat(de[0].longShortRatio);
+  if (Array.isArray(db) && db.length >= 2) {
+    const oldest = parseFloat(db[0].sumOpenInterest);
+    const newest = parseFloat(db[db.length-1].sumOpenInterest);
+    D.btcOIChange = (newest - oldest) / oldest * 100;
+  }
+  if (Array.isArray(de) && de.length >= 2) {
+    const oldest = parseFloat(de[0].sumOpenInterest);
+    const newest = parseFloat(de[de.length-1].sumOpenInterest);
+    D.ethOIChange = (newest - oldest) / oldest * 100;
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -549,6 +590,41 @@ function getBtcIndicators() {
         : '로딩 중...',
       detail:'365일 가격 평균·표준편차 기반 Z-점수. Z<-1이면 장기 평균 대비 크게 저평가된 바닥권.',
     },
+    {
+      name:'200주 이동평균선 (4년 MA)',
+      stars:'★★★★★',
+      thr:'현재가 < 200주 MA = 역사적 바닥',
+      status: loading(D.btcPrice||D.btcMa200w) || sig(D.btcPrice < D.btcMa200w, D.btcPrice < D.btcMa200w*1.1),
+      value: D.btcMa200w ? '$'+fmt(D.btcMa200w) : null,
+      desc: D.btcMa200w
+        ? (D.btcPrice < D.btcMa200w
+          ? `200주MA $${fmt(D.btcMa200w)} — 이하 🔴`
+          : `200주MA $${fmt(D.btcMa200w)} — +${pct(D.btcPrice,D.btcMa200w)}%`)
+        : '로딩 중...',
+      detail:'비트코인 역사에서 가장 신뢰도 높은 바닥 지표. 약 4년(200주) 이동평균선 아래로 내려간 경우가 매번 강력한 매수 기회였음. 현재까지 단 한 번도 이 선 아래에서 손실로 끝난 적 없음.',
+    },
+    {
+      name:'볼린저밴드 %B (20일)',
+      stars:'★★★★☆',
+      thr:'< 0% = 하단밴드 이탈 (과매도)',
+      status: loading(D.btcBBPercent) || sig(D.btcBBPercent<0, D.btcBBPercent<0.2),
+      value: D.btcBBPercent!=null ? (D.btcBBPercent*100).toFixed(1)+'%' : null,
+      desc: D.btcBBPercent!=null
+        ? (D.btcBBPercent<0?'하단밴드 이탈 — 과매도 🔴':D.btcBBPercent<0.2?'하단밴드 근접 ⚠️':`%B=${(D.btcBBPercent*100).toFixed(1)}% — 정상`)
+        : '로딩 중...',
+      detail:'20일 볼린저밴드에서 현재 가격의 상대적 위치. 0% 이하면 하단밴드 아래(극단적 과매도), 100%면 상단밴드. 0% 근처나 이하가 단기 바닥 신호.',
+    },
+    {
+      name:'OI 7일 변화율',
+      stars:'★★★☆☆',
+      thr:'< -15% = 레버리지 청산 급감',
+      status: loading(D.btcOIChange) || sig(D.btcOIChange<=-15, D.btcOIChange<=-8),
+      value: D.btcOIChange!=null ? D.btcOIChange.toFixed(1)+'%' : null,
+      desc: D.btcOIChange!=null
+        ? (D.btcOIChange<=-15?'대규모 청산 발생 🔴':D.btcOIChange<=-8?'레버리지 축소 ⚠️':`OI ${D.btcOIChange.toFixed(1)}% 변화`)
+        : '로딩 중...',
+      detail:'미결제약정(Open Interest) 7일 변화율. OI가 급격히 감소하면 대규모 강제 청산이 발생한 것. 과도한 레버리지가 해소된 이후 반등 가능성이 높아짐.',
+    },
   ];
 }
 
@@ -641,6 +717,41 @@ function getEthIndicators() {
         : '로딩 중...',
       detail:'365일 가격 평균·표준편차 기반 Z-점수. Z<-1이면 장기 평균 대비 크게 저평가. ETH는 변동성이 커서 Z값이 극단적으로 갈 수 있음.',
     },
+    {
+      name:'200주 이동평균선 (4년 MA)',
+      stars:'★★★★★',
+      thr:'현재가 < 200주 MA = 역사적 바닥',
+      status: loading(D.ethPrice||D.ethMa200w) || sig(D.ethPrice < D.ethMa200w, D.ethPrice < D.ethMa200w*1.1),
+      value: D.ethMa200w ? '$'+fmt(D.ethMa200w) : null,
+      desc: D.ethMa200w
+        ? (D.ethPrice < D.ethMa200w
+          ? `200주MA $${fmt(D.ethMa200w)} — 이하 🔴`
+          : `200주MA $${fmt(D.ethMa200w)} — +${pct(D.ethPrice,D.ethMa200w)}%`)
+        : '로딩 중...',
+      detail:'200주(약 4년) 이동평균선 기준 ETH 바닥 판단. BTC와 마찬가지로 이 선 아래는 역사적 저점권으로 분류됨.',
+    },
+    {
+      name:'볼린저밴드 %B (20일)',
+      stars:'★★★★☆',
+      thr:'< 0% = 하단밴드 이탈 (과매도)',
+      status: loading(D.ethBBPercent) || sig(D.ethBBPercent<0, D.ethBBPercent<0.2),
+      value: D.ethBBPercent!=null ? (D.ethBBPercent*100).toFixed(1)+'%' : null,
+      desc: D.ethBBPercent!=null
+        ? (D.ethBBPercent<0?'하단밴드 이탈 — 과매도 🔴':D.ethBBPercent<0.2?'하단밴드 근접 ⚠️':`%B=${(D.ethBBPercent*100).toFixed(1)}% — 정상`)
+        : '로딩 중...',
+      detail:'20일 볼린저밴드에서 현재 ETH 가격의 위치. ETH는 변동성이 커서 하단 이탈 빈도가 BTC보다 높음. 이탈 직후 반등 확률이 높음.',
+    },
+    {
+      name:'OI 7일 변화율',
+      stars:'★★★☆☆',
+      thr:'< -15% = 레버리지 청산 급감',
+      status: loading(D.ethOIChange) || sig(D.ethOIChange<=-15, D.ethOIChange<=-8),
+      value: D.ethOIChange!=null ? D.ethOIChange.toFixed(1)+'%' : null,
+      desc: D.ethOIChange!=null
+        ? (D.ethOIChange<=-15?'대규모 청산 발생 🔴':D.ethOIChange<=-8?'레버리지 축소 ⚠️':`OI ${D.ethOIChange.toFixed(1)}% 변화`)
+        : '로딩 중...',
+      detail:'ETH 미결제약정 7일 변화율. ETH는 변동성이 더 커서 급락 시 OI 감소폭이 BTC보다 큼. 대규모 청산 후 바닥 형성 패턴.',
+    },
   ];
 }
 
@@ -705,39 +816,39 @@ function renderAll() {
   const ethA = renderList('ethList', getEthIndicators());
 
   // scores
-  const btcT = getTag(btcA, 9);
-  document.getElementById('btcScoreNum').innerHTML = `${btcA}<span class="mx">/9</span>`;
+  const btcT = getTag(btcA, 10);
+  document.getElementById('btcScoreNum').innerHTML = `${btcA}<span class="mx">/10</span>`;
   const btcTagEl = document.getElementById('btcTag');
   btcTagEl.textContent = btcT.txt;
   btcTagEl.style.background = btcT.color;
   btcTagEl.style.color = btcT.textColor;
-  document.getElementById('btcCount').textContent = `${btcA}/9 활성`;
+  document.getElementById('btcCount').textContent = `${btcA}/10 활성`;
 
-  const ethT = getTag(ethA, 11);
-  document.getElementById('ethScoreNum').innerHTML = `${ethA}<span class="mx">/11</span>`;
+  const ethT = getTag(ethA, 12);
+  document.getElementById('ethScoreNum').innerHTML = `${ethA}<span class="mx">/12</span>`;
   const ethTagEl = document.getElementById('ethTag');
   ethTagEl.textContent = ethT.txt;
   ethTagEl.style.background = ethT.color;
   ethTagEl.style.color = ethT.textColor;
-  document.getElementById('ethCount').textContent = `${ethA}/11 활성`;
+  document.getElementById('ethCount').textContent = `${ethA}/12 활성`;
 
   // alert
   const total = btcA + ethA;
   const box = document.getElementById('alertBox');
   const title = document.getElementById('alertTitle');
   const body = document.getElementById('alertBody');
-  if (total >= 12) {
+  if (total >= 13) {
     box.className='alert hot';
     title.textContent='🚨 복합 바닥 신호 강하게 감지!';
-    body.textContent=`BTC ${btcA}/9 + ETH ${ethA}/11 신호 동시 충족. 역사적 바닥권 진입 가능성. 분할 매수 검토.`;
+    body.textContent=`BTC ${btcA}/10 + ETH ${ethA}/12 신호 동시 충족. 역사적 바닥권 진입 가능성. 분할 매수 검토.`;
   } else if (total >= 7) {
     box.className='alert warm';
     title.textContent='⚠️ 일부 바닥 신호 감지 중';
-    body.textContent=`BTC ${btcA}/9 + ETH ${ethA}/11 신호 충족. 추가 지표 모니터링 권장.`;
+    body.textContent=`BTC ${btcA}/10 + ETH ${ethA}/12 신호 충족. 추가 지표 모니터링 권장.`;
   } else {
     box.className='alert';
     title.textContent='📡 현재 바닥 신호 없음';
-    body.textContent=`BTC ${btcA}/9, ETH ${ethA}/11 신호만 충족. 일반 시장 상황.`;
+    body.textContent=`BTC ${btcA}/10, ETH ${ethA}/12 신호만 충족. 일반 시장 상황.`;
   }
 
   // time
@@ -758,7 +869,8 @@ async function init() {
     safe(fetchFearGreed),
     safe(fetchFunding),
     safe(fetchKlines),
-    safe(fetchLongShort),
+    safe(fetchWeeklyKlines),
+    safe(fetchOIHistory),
   ]);
 
   renderAll();

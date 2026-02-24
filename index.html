@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="바닥레이더">
+<title>₿ 바닥 신호 레이더</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+KR:wght@300;400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #07090d;
+  --panel: #0d1219;
+  --panel2: #111820;
+  --border: #1a2535;
+  --border2: #243040;
+  --accent: #00d4ff;
+  --green: #00e87a;
+  --red: #ff4466;
+  --yellow: #ffb830;
+  --text: #ddeeff;
+  --text2: #5a7a99;
+  --btc: #f7931a;
+  --eth: #7b93ea;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { scroll-behavior:smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans KR', sans-serif;
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+
+/* grid bg */
+body::after {
+  content:'';
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    linear-gradient(rgba(0,212,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,.025) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+
+.wrap { position:relative; z-index:1; max-width:460px; margin:0 auto; }
+
+/* ── HEADER ── */
+.hdr {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(0,212,255,.06) 0%, transparent 100%);
+}
+.hdr-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.logo { font-family:'Space Mono',monospace; font-size:10px; letter-spacing:3px; color:var(--accent); opacity:.7; }
+.refresh-btn {
+  display:flex; align-items:center; gap:5px;
+  background:none; border:1px solid var(--border2); color:var(--text2);
+  font-size:12px; padding:6px 13px; border-radius:8px; cursor:pointer;
+  font-family:'Noto Sans KR',sans-serif; transition:all .15s;
+}
+.refresh-btn:active { background:var(--border); transform:scale(.96); }
+.refresh-btn.spin svg { animation:spin .8s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
+.updated { font-size:10px; color:var(--text2); margin-top:3px; font-family:'Space Mono',monospace; }
+
+/* ── PRICES ── */
+.prices {
+  display:grid; grid-template-columns:1fr 1fr; gap:10px;
+  padding:14px 18px;
+}
+.price-card {
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:14px; padding:13px 14px;
+  display:flex; flex-direction:column; gap:4px;
+  position:relative; overflow:hidden;
+}
+.price-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+}
+.price-card.btc::before { background:linear-gradient(90deg,var(--btc),transparent); }
+.price-card.eth::before { background:linear-gradient(90deg,var(--eth),transparent); }
+.p-sym { font-family:'Space Mono',monospace; font-size:10px; color:var(--text2); letter-spacing:1px; }
+.p-price { font-family:'Space Mono',monospace; font-size:17px; font-weight:700; }
+.p-chg { font-family:'Space Mono',monospace; font-size:12px; font-weight:700; }
+.up { color:var(--green); } .dn { color:var(--red); }
+
+/* ── ALERT ── */
+.alert {
+  margin:0 18px 14px;
+  border-radius:14px; padding:14px 16px;
+  border:1px solid var(--border2);
+  background:var(--panel);
+  transition:all .4s;
+}
+.alert.hot { border-color:rgba(0,232,122,.35); background:rgba(0,232,122,.04); }
+.alert.warm { border-color:rgba(255,184,48,.3); background:rgba(255,184,48,.03); }
+.alert-title { font-size:14px; font-weight:900; margin-bottom:3px; }
+.alert-body { font-size:12px; color:var(--text2); line-height:1.5; }
+
+/* ── SCORES ── */
+.scores { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 18px 14px; }
+.score-card {
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:14px; padding:14px;
+  position:relative; overflow:hidden;
+}
+.score-card::before { content:''; position:absolute; top:0;left:0;right:0;height:2px; }
+.score-card.btc::before { background:linear-gradient(90deg,var(--btc),transparent); }
+.score-card.eth::before { background:linear-gradient(90deg,var(--eth),transparent); }
+.sc-lbl { font-size:10px; color:var(--text2); font-family:'Space Mono',monospace; letter-spacing:1px; margin-bottom:6px; }
+.sc-num { font-family:'Space Mono',monospace; font-size:34px; font-weight:700; line-height:1; }
+.sc-num .mx { font-size:15px; color:var(--text2); }
+.sc-tag {
+  display:inline-block; margin-top:7px;
+  font-size:10px; font-weight:700; letter-spacing:.5px;
+  padding:3px 8px; border-radius:5px;
+}
+
+/* ── TABS ── */
+.tabs { display:flex; gap:8px; padding:0 18px 14px; }
+.tab {
+  flex:1; padding:10px 4px; border-radius:10px;
+  border:1px solid var(--border); background:var(--panel);
+  color:var(--text2); font-size:13px; font-weight:700;
+  cursor:pointer; text-align:center; transition:all .15s;
+  font-family:'Noto Sans KR',sans-serif;
+}
+.tab.on { background:var(--panel2); color:var(--text); border-color:var(--accent); }
+.tab:active { transform:scale(.97); }
+
+/* ── TAB CONTENT ── */
+.pane { display:none; } .pane.on { display:block; }
+
+/* ── SECTION ── */
+.sec { padding:0 18px; margin-bottom:18px; }
+.sec-hdr {
+  display:flex; align-items:center; gap:8px;
+  margin-bottom:10px;
+}
+.sec-title { font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--text2); }
+.sec-badge {
+  margin-left:auto; font-size:10px; font-family:'Space Mono',monospace;
+  padding:2px 7px; border-radius:4px;
+}
+.badge-live { background:rgba(0,232,122,.12); color:var(--green); }
+.badge-count { background:rgba(90,122,153,.12); color:var(--text2); }
+
+/* ── INDICATOR ── */
+.ind-list { display:flex; flex-direction:column; gap:7px; }
+.ind {
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:12px; padding:13px 13px;
+  display:flex; align-items:center; gap:11px;
+  animation:fadeUp .35s ease both;
+  transition:border-color .3s;
+}
+.ind.hot { border-color:rgba(0,232,122,.35); background:rgba(0,232,122,.025); }
+.ind.warm { border-color:rgba(255,184,48,.25); background:rgba(255,184,48,.025); }
+
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(7px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.dot {
+  width:9px; height:9px; border-radius:50%; flex-shrink:0;
+}
+.dot.active { background:var(--green); box-shadow:0 0 0 3px rgba(0,232,122,.2); animation:pulse 2s infinite; }
+.dot.warn   { background:var(--yellow); box-shadow:0 0 0 3px rgba(255,184,48,.2); }
+.dot.off    { background:var(--border2); }
+.dot.loading { background:var(--border2); animation:blink 1s infinite; }
+@keyframes pulse { 0%,100%{box-shadow:0 0 0 3px rgba(0,232,122,.2);}50%{box-shadow:0 0 0 6px rgba(0,232,122,.08);} }
+@keyframes blink { 0%,100%{opacity:.3;}50%{opacity:.9;} }
+
+.ind-body { flex:1; min-width:0; }
+.ind-name { font-size:13px; font-weight:700; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ind-desc { font-size:11px; color:var(--text2); line-height:1.4; }
+.ind-stars { font-size:9px; color:var(--yellow); margin-top:2px; }
+.ind-thr { font-size:9px; color:var(--text2); margin-left:4px; }
+
+.ind-val-col { text-align:right; flex-shrink:0; min-width:60px; }
+.ind-val { font-family:'Space Mono',monospace; font-size:12px; font-weight:700; white-space:nowrap; }
+.ind-val.active { color:var(--green); }
+.ind-val.warn   { color:var(--yellow); }
+.ind-val.off    { color:var(--text2); }
+.ind-val.loading { color:var(--border2); animation:blink 1s infinite; }
+
+/* ── LINKS PANEL ── */
+.links-panel {
+  margin:0 18px 18px;
+  background:rgba(0,212,255,.04);
+  border:1px solid rgba(0,212,255,.12);
+  border-radius:14px; padding:14px;
+}
+.links-title { font-size:10px; color:var(--accent); font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:10px; }
+.link-row {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:7px 0; border-bottom:1px solid rgba(255,255,255,.04);
+}
+.link-row:last-child { border-bottom:none; }
+.link-name { font-size:12px; color:var(--text2); }
+.link-a {
+  font-size:11px; font-family:'Space Mono',monospace;
+  color:var(--accent); text-decoration:none; padding:3px 8px;
+  border:1px solid rgba(0,212,255,.2); border-radius:5px;
+}
+
+/* ── FOOTER ── */
+.footer {
+  text-align:center; padding:18px; font-size:11px;
+  color:var(--text2); line-height:1.7;
+  border-top:1px solid var(--border);
+}
+
+/* ── LOADING OVERLAY ── */
+.loading-bar {
+  position:fixed; top:0; left:0; right:0; height:2px; z-index:99;
+  background:linear-gradient(90deg,var(--accent),var(--green),var(--accent));
+  background-size:200% 100%;
+  animation:loadbar 1.2s linear infinite;
+  display:none;
+}
+.loading-bar.show { display:block; }
+@keyframes loadbar { 0%{background-position:200% 0}100%{background-position:-200% 0} }
+</style>
+</head>
+<body>
+
+<div class="loading-bar" id="loadingBar"></div>
+
+<div class="wrap">
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-row">
+    <div class="logo">BOTTOM RADAR v2</div>
+    <button class="refresh-btn" id="refreshBtn" onclick="init()">
+      <svg id="refreshIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      새로고침
+    </button>
+  </div>
+  <h1>₿ 바닥 신호 레이더</h1>
+  <div class="updated" id="updatedTime">불러오는 중...</div>
+</div>
+
+<!-- PRICES -->
+<div class="prices">
+  <div class="price-card btc">
+    <div class="p-sym">BTC / USD</div>
+    <div class="p-price" id="btcPrice">---</div>
+    <div class="p-chg" id="btcChg">--</div>
+  </div>
+  <div class="price-card eth">
+    <div class="p-sym">ETH / USD</div>
+    <div class="p-price" id="ethPrice">---</div>
+    <div class="p-chg" id="ethChg">--</div>
+  </div>
+</div>
+
+<!-- ALERT -->
+<div class="alert" id="alertBox">
+  <div class="alert-title" id="alertTitle">📡 분석 중...</div>
+  <div class="alert-body" id="alertBody">데이터를 불러오고 있습니다.</div>
+</div>
+
+<!-- SCORES -->
+<div class="scores">
+  <div class="score-card btc">
+    <div class="sc-lbl">BTC SIGNALS</div>
+    <div class="sc-num" id="btcScoreNum">--<span class="mx">/10</span></div>
+    <div class="sc-tag" id="btcTag">분석 중</div>
+  </div>
+  <div class="score-card eth">
+    <div class="sc-lbl">ETH SIGNALS</div>
+    <div class="sc-num" id="ethScoreNum">--<span class="mx">/10</span></div>
+    <div class="sc-tag" id="ethTag">분석 중</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab on" onclick="switchTab('btc',this)">₿ BTC</div>
+  <div class="tab" onclick="switchTab('eth',this)">Ξ ETH</div>
+  <div class="tab" onclick="switchTab('mkt',this)">📊 시장</div>
+</div>
+
+<!-- BTC PANE -->
+<div class="pane on" id="pane-btc">
+  <div class="sec">
+    <div class="sec-hdr">
+      <span style="font-size:15px">🟠</span>
+      <span class="sec-title">BTC 바닥 지표</span>
+      <span class="sec-badge badge-live">● LIVE</span>
+      <span class="sec-badge badge-count" id="btcCount">--/10</span>
+    </div>
+    <div class="ind-list" id="btcList"></div>
+  </div>
+</div>
+
+<!-- ETH PANE -->
+<div class="pane" id="pane-eth">
+  <div class="sec">
+    <div class="sec-hdr">
+      <span style="font-size:15px">🔵</span>
+      <span class="sec-title">ETH 바닥 지표</span>
+      <span class="sec-badge badge-live">● LIVE</span>
+      <span class="sec-badge badge-count" id="ethCount">--/10</span>
+    </div>
+    <div class="ind-list" id="ethList"></div>
+  </div>
+</div>
+
+<!-- MARKET PANE -->
+<div class="pane" id="pane-mkt">
+  <div class="sec">
+    <div class="sec-hdr">
+      <span style="font-size:15px">📈</span>
+      <span class="sec-title">시장 심리</span>
+      <span class="sec-badge badge-live">● LIVE</span>
+    </div>
+    <div class="ind-list" id="mktList"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr">
+      <span style="font-size:15px">📉</span>
+      <span class="sec-title">선물 / 파생</span>
+      <span class="sec-badge badge-live">● LIVE</span>
+    </div>
+    <div class="ind-list" id="fudList"></div>
+  </div>
+
+  <div class="links-panel">
+    <div class="links-title">🔗 온체인 지표 (무료 직접 확인)</div>
+    <div class="link-row"><span class="link-name">MVRV · Puell · Pi Cycle</span><a class="link-a" href="https://www.lookintobitcoin.com" target="_blank">열기 →</a></div>
+    <div class="link-row"><span class="link-name">SOPR · Exchange Reserve</span><a class="link-a" href="https://cryptoquant.com" target="_blank">열기 →</a></div>
+    <div class="link-row"><span class="link-name">Put/Call · IV · Skew</span><a class="link-a" href="https://greeks.live" target="_blank">열기 →</a></div>
+    <div class="link-row"><span class="link-name">Liquidation Heatmap</span><a class="link-a" href="https://coinglass.com" target="_blank">열기 →</a></div>
+    <div class="link-row"><span class="link-name">Bitfinex Longs/Shorts</span><a class="link-a" href="https://coinglass.com/BitfinexLongs" target="_blank">열기 →</a></div>
+    <div class="link-row"><span class="link-name">HODL Waves · LTH-SOPR</span><a class="link-a" href="https://glassnode.com" target="_blank">열기 →</a></div>
+    <div class="link-row"><span class="link-name">Google Trends: Bitcoin</span><a class="link-a" href="https://trends.google.com/trends/explore?q=bitcoin" target="_blank">열기 →</a></div>
+  </div>
+</div>
+
+<div class="footer">
+  무료 API: CoinGecko · Binance · Alternative.me<br>
+  ⚠️ 투자 판단 보조용 · 분할매수 권장<br>
+  <span style="opacity:.5">5분마다 자동 갱신</span>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+const D = {
+  btcPrice:null, ethPrice:null,
+  btcChange24h:null, ethChange24h:null,
+  btcChange7d:null, ethChange7d:null,
+  btcAth:null, ethAth:null,
+  btcMcap:null, ethMcap:null, totalMcap:null,
+  btcVol:null, ethVol:null,
+  btcDom:null,
+  btcMa200:null, ethMa200:null,
+  btcFunding:null, ethFunding:null,
+  btcOI:null,
+  fearGreed:null, fearGreedLabel:null,
+  stableCap:null,
+  ethGas:null,
+};
+
+// ═══════════════════════════════════════════════
+//  FETCH
+// ═══════════════════════════════════════════════
+async function safe(fn) { try { await fn(); } catch(e) { console.warn(e); } }
+
+async function fetchCoinGecko() {
+  const r = await fetch(
+    'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd' +
+    '&ids=bitcoin,ethereum,tether,usd-coin' +
+    '&order=market_cap_desc&per_page=10&page=1' +
+    '&price_change_percentage=24h,7d'
+  );
+  const list = await r.json();
+  const get = id => list.find(c => c.id === id);
+  const btc = get('bitcoin'), eth = get('ethereum');
+  const usdt = get('tether'), usdc = get('usd-coin');
+  if (btc) {
+    D.btcPrice = btc.current_price;
+    D.btcAth = btc.ath;
+    D.btcChange24h = btc.price_change_percentage_24h;
+    D.btcChange7d = btc.price_change_percentage_7d_in_currency;
+    D.btcMcap = btc.market_cap;
+    D.btcVol = btc.total_volume;
+  }
+  if (eth) {
+    D.ethPrice = eth.current_price;
+    D.ethAth = eth.ath;
+    D.ethChange24h = eth.price_change_percentage_24h;
+    D.ethChange7d = eth.price_change_percentage_7d_in_currency;
+    D.ethMcap = eth.market_cap;
+    D.ethVol = eth.total_volume;
+  }
+  D.stableCap = (usdt?.market_cap||0) + (usdc?.market_cap||0);
+}
+
+async function fetchGlobal() {
+  const r = await fetch('https://api.coingecko.com/api/v3/global');
+  const g = (await r.json()).data;
+  D.totalMcap = g?.total_market_cap?.usd;
+  D.btcDom = g?.market_cap_percentage?.btc;
+}
+
+async function fetchFearGreed() {
+  const r = await fetch('https://api.alternative.me/fng/?limit=1');
+  const d = (await r.json()).data[0];
+  D.fearGreed = parseFloat(d.value);
+  D.fearGreedLabel = d.value_classification;
+}
+
+async function fetchFunding() {
+  const [rb, re] = await Promise.all([
+    fetch('https://fapi.binance.com/fapi/v1/fundingRate?symbol=BTCUSDT&limit=1'),
+    fetch('https://fapi.binance.com/fapi/v1/fundingRate?symbol=ETHUSDT&limit=1'),
+  ]);
+  const db = await rb.json();
+  const de = await re.json();
+  if (db[0]) D.btcFunding = parseFloat(db[0].fundingRate);
+  if (de[0]) D.ethFunding = parseFloat(de[0].fundingRate);
+}
+
+async function fetchOI() {
+  const r = await fetch('https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT');
+  const d = await r.json();
+  if (d.openInterest && D.btcPrice) D.btcOI = parseFloat(d.openInterest) * D.btcPrice;
+}
+
+async function fetchKlines() {
+  const [rb, re] = await Promise.all([
+    fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=200'),
+    fetch('https://api.binance.com/api/v3/klines?symbol=ETHUSDT&interval=1d&limit=200'),
+  ]);
+  const kb = await rb.json();
+  const ke = await re.json();
+  if (Array.isArray(kb) && kb.length >= 200) {
+    const c = kb.map(k => parseFloat(k[4]));
+    D.btcMa200 = c.reduce((a,b)=>a+b,0)/c.length;
+  }
+  if (Array.isArray(ke) && ke.length >= 200) {
+    const c = ke.map(k => parseFloat(k[4]));
+    D.ethMa200 = c.reduce((a,b)=>a+b,0)/c.length;
+  }
+}
+
+async function fetchGas() {
+  // Etherscan public (no key needed for gas oracle)
+  const r = await fetch('https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=YourApiKeyToken');
+  const d = await r.json();
+  if (d.result?.SafeGasPrice) D.ethGas = parseFloat(d.result.SafeGasPrice);
+}
+
+// ═══════════════════════════════════════════════
+//  INDICATORS
+// ═══════════════════════════════════════════════
+function sig(condition, warnCondition) {
+  if (condition) return 'active';
+  if (warnCondition) return 'warn';
+  return 'off';
+}
+function loading(val) { return val == null ? 'loading' : null; }
+
+function pct(a, b) { return ((a/b - 1)*100).toFixed(1); }
+function fmt(n, d=0) { return n==null?'---':n.toLocaleString('en-US',{maximumFractionDigits:d}); }
+function fmtB(n) {
+  if(n==null) return '---';
+  if(n>=1e12) return (n/1e12).toFixed(2)+'T';
+  if(n>=1e9) return (n/1e9).toFixed(2)+'B';
+  if(n>=1e6) return (n/1e6).toFixed(2)+'M';
+  return n.toFixed(0);
+}
+
+function getBtcIndicators() {
+  const stable = D.stableCap;
+  return [
+    {
+      name:'200일 이동평균선',
+      stars:'★★★★★',
+      thr:'현재가 < 200일 MA = 바닥 신호',
+      status: loading(D.btcPrice||D.btcMa200) || sig(D.btcPrice < D.btcMa200, D.btcPrice < D.btcMa200*1.08),
+      value: D.btcMa200 ? '$'+fmt(D.btcMa200) : null,
+      desc: D.btcMa200 ? (D.btcPrice < D.btcMa200
+        ? `200MA $${fmt(D.btcMa200)} — ${pct(D.btcPrice,D.btcMa200)}% 이하 🔴`
+        : `200MA $${fmt(D.btcMa200)} — +${pct(D.btcPrice,D.btcMa200)}% 위`)
+        : '로딩 중...',
+    },
+    {
+      name:'ATH 대비 낙폭 (MDD)',
+      stars:'★★★★☆',
+      thr:'-80% 이하 = 역사적 바닥권',
+      status: loading(D.btcPrice&&D.btcAth) || sig((D.btcPrice/D.btcAth-1)*100<=-80, (D.btcPrice/D.btcAth-1)*100<=-60),
+      value: D.btcAth ? pct(D.btcPrice,D.btcAth)+'%' : null,
+      desc: D.btcAth ? `ATH $${fmt(D.btcAth)}대비 ${pct(D.btcPrice,D.btcAth)}%` : '로딩 중...',
+    },
+    {
+      name:'Funding Rate (BTC)',
+      stars:'★★★★★',
+      thr:'< -0.05% 지속 = 숏 과잉',
+      status: loading(D.btcFunding) || sig(D.btcFunding<=-0.001, D.btcFunding<0),
+      value: D.btcFunding!=null ? (D.btcFunding*100).toFixed(4)+'%' : null,
+      desc: D.btcFunding!=null
+        ? (D.btcFunding<=-0.001?'숏스퀴즈 임박 🔴':D.btcFunding<0?'음수 펀딩 ⚠️':'정상 구간')
+        : '로딩 중...',
+    },
+    {
+      name:'Fear & Greed Index',
+      stars:'★★★★★',
+      thr:'≤ 20 = 극도의 공포',
+      status: loading(D.fearGreed) || sig(D.fearGreed<=20, D.fearGreed<=35),
+      value: D.fearGreed!=null ? String(Math.round(D.fearGreed)) : null,
+      desc: D.fearGreed!=null ? `${Math.round(D.fearGreed)}/100 — ${D.fearGreedLabel}` : '로딩 중...',
+    },
+    {
+      name:'BTC 도미넌스',
+      stars:'★★★☆☆',
+      thr:'> 60% = 알트 패닉매도',
+      status: loading(D.btcDom) || sig(D.btcDom>=60, D.btcDom>=55),
+      value: D.btcDom!=null ? D.btcDom.toFixed(1)+'%' : null,
+      desc: D.btcDom!=null
+        ? (D.btcDom>=60?`${D.btcDom.toFixed(1)}% — 알트 패닉 ⚠️`:`${D.btcDom.toFixed(1)}% — 일반`)
+        : '로딩 중...',
+    },
+    {
+      name:'Stablecoin 비율 (SSR대용)',
+      stars:'★★★★☆',
+      thr:'stable/BTC 시총 > 18% = 매수여력 풍부',
+      status: loading(stable&&D.btcMcap) || sig(stable/D.btcMcap>=0.18, stable/D.btcMcap>=0.13),
+      value: (stable&&D.btcMcap) ? ((stable/D.btcMcap)*100).toFixed(1)+'%' : null,
+      desc: (stable&&D.btcMcap)
+        ? `Stable $${fmtB(stable)} / BTC $${fmtB(D.btcMcap)}`
+        : '로딩 중...',
+    },
+    {
+      name:'Vol / 시가총액',
+      stars:'★★★☆☆',
+      thr:'< 1% = 시장 냉각',
+      status: loading(D.btcVol&&D.btcMcap) || sig(D.btcVol/D.btcMcap<=0.01, D.btcVol/D.btcMcap<=0.015),
+      value: (D.btcVol&&D.btcMcap) ? ((D.btcVol/D.btcMcap)*100).toFixed(2)+'%' : null,
+      desc: (D.btcVol&&D.btcMcap)
+        ? `24H $${fmtB(D.btcVol)} / MCap $${fmtB(D.btcMcap)}`
+        : '로딩 중...',
+    },
+    {
+      name:'ETH/BTC 비율',
+      stars:'★★★☆☆',
+      thr:'< 0.025 = ETH 극단 약세',
+      status: loading(D.ethPrice&&D.btcPrice) || sig(D.ethPrice/D.btcPrice<=0.025, D.ethPrice/D.btcPrice<=0.035),
+      value: (D.ethPrice&&D.btcPrice) ? (D.ethPrice/D.btcPrice).toFixed(4) : null,
+      desc: (D.ethPrice&&D.btcPrice)
+        ? `ETH/BTC = ${(D.ethPrice/D.btcPrice).toFixed(4)}`
+        : '로딩 중...',
+    },
+    {
+      name:'7일 낙폭',
+      stars:'★★★☆☆',
+      thr:'-30% 이하 = 패닉 낙폭',
+      status: loading(D.btcChange7d) || sig(D.btcChange7d<=-30, D.btcChange7d<=-20),
+      value: D.btcChange7d!=null ? D.btcChange7d.toFixed(1)+'%' : null,
+      desc: D.btcChange7d!=null ? `7일 ${D.btcChange7d.toFixed(1)}%` : '로딩 중...',
+    },
+    {
+      name:'전체 크립토 시총',
+      stars:'★★★☆☆',
+      thr:'< $600B = 극단 저평가',
+      status: loading(D.totalMcap) || sig(D.totalMcap<=6e11, D.totalMcap<=1e12),
+      value: D.totalMcap ? '$'+fmtB(D.totalMcap) : null,
+      desc: D.totalMcap ? `전체 $${fmtB(D.totalMcap)}` : '로딩 중...',
+    },
+  ];
+}
+
+function getEthIndicators() {
+  const stable = D.stableCap;
+  return [
+    {
+      name:'200일 이동평균선',
+      stars:'★★★★★',
+      thr:'현재가 < 200일 MA',
+      status: loading(D.ethPrice&&D.ethMa200) || sig(D.ethPrice<D.ethMa200, D.ethPrice<D.ethMa200*1.08),
+      value: D.ethMa200 ? '$'+fmt(D.ethMa200) : null,
+      desc: D.ethMa200
+        ? (D.ethPrice<D.ethMa200?`200MA $${fmt(D.ethMa200)} 이하 🔴`:`200MA $${fmt(D.ethMa200)} — +${pct(D.ethPrice,D.ethMa200)}%`)
+        : '로딩 중...',
+    },
+    {
+      name:'ATH 대비 낙폭 (MDD)',
+      stars:'★★★★☆',
+      thr:'-85% 이하 = 역사적 바닥권',
+      status: loading(D.ethPrice&&D.ethAth) || sig((D.ethPrice/D.ethAth-1)*100<=-85, (D.ethPrice/D.ethAth-1)*100<=-65),
+      value: D.ethAth ? pct(D.ethPrice,D.ethAth)+'%' : null,
+      desc: D.ethAth ? `ATH $${fmt(D.ethAth)} 대비 ${pct(D.ethPrice,D.ethAth)}%` : '로딩 중...',
+    },
+    {
+      name:'Funding Rate (ETH)',
+      stars:'★★★★★',
+      thr:'< -0.05% = 숏 과잉',
+      status: loading(D.ethFunding) || sig(D.ethFunding<=-0.001, D.ethFunding<0),
+      value: D.ethFunding!=null ? (D.ethFunding*100).toFixed(4)+'%' : null,
+      desc: D.ethFunding!=null
+        ? (D.ethFunding<=-0.001?'숏스퀴즈 임박 🔴':D.ethFunding<0?'음수 펀딩 ⚠️':'정상')
+        : '로딩 중...',
+    },
+    {
+      name:'Fear & Greed Index',
+      stars:'★★★★★',
+      thr:'≤ 20 = 극도의 공포',
+      status: loading(D.fearGreed) || sig(D.fearGreed<=20, D.fearGreed<=35),
+      value: D.fearGreed!=null ? String(Math.round(D.fearGreed)) : null,
+      desc: D.fearGreed!=null ? `${Math.round(D.fearGreed)}/100 — ${D.fearGreedLabel}` : '로딩 중...',
+    },
+    {
+      name:'ETH/BTC 비율',
+      stars:'★★★★☆',
+      thr:'< 0.025 = 역사적 저점권',
+      status: loading(D.ethPrice&&D.btcPrice) || sig(D.ethPrice/D.btcPrice<=0.025, D.ethPrice/D.btcPrice<=0.035),
+      value: (D.ethPrice&&D.btcPrice) ? (D.ethPrice/D.btcPrice).toFixed(4) : null,
+      desc: (D.ethPrice&&D.btcPrice)
+        ? `${(D.ethPrice/D.btcPrice).toFixed(4)} ${D.ethPrice/D.btcPrice<=0.025?'🔴 역사적 저점권':''}`
+        : '로딩 중...',
+    },
+    {
+      name:'ETH 가스비',
+      stars:'★★★★☆',
+      thr:'< 5 Gwei = 온체인 활동 극감',
+      status: loading(D.ethGas) || sig(D.ethGas<=5, D.ethGas<=10),
+      value: D.ethGas!=null ? D.ethGas.toFixed(1)+' Gwei' : null,
+      desc: D.ethGas!=null
+        ? (D.ethGas<=5?`${D.ethGas.toFixed(1)} Gwei 🔴 온체인 극감`:
+           D.ethGas<=10?`${D.ethGas.toFixed(1)} Gwei ⚠️ 낮은 활동`:`${D.ethGas.toFixed(1)} Gwei 정상`)
+        : '로딩 중...',
+    },
+    {
+      name:'Stablecoin/ETH 시총 비율',
+      stars:'★★★★☆',
+      thr:'> 50% = 매수여력 풍부',
+      status: loading(stable&&D.ethMcap) || sig(stable/D.ethMcap>=0.5, stable/D.ethMcap>=0.4),
+      value: (stable&&D.ethMcap) ? ((stable/D.ethMcap)*100).toFixed(1)+'%' : null,
+      desc: (stable&&D.ethMcap) ? `Stable $${fmtB(stable)} / ETH $${fmtB(D.ethMcap)}` : '로딩 중...',
+    },
+    {
+      name:'ETH 점유율 (도미넌스)',
+      stars:'★★★☆☆',
+      thr:'< 12% = ETH 극단 약세',
+      status: loading(D.ethMcap&&D.totalMcap) || sig(D.ethMcap/D.totalMcap<=0.12, D.ethMcap/D.totalMcap<=0.15),
+      value: (D.ethMcap&&D.totalMcap) ? ((D.ethMcap/D.totalMcap)*100).toFixed(1)+'%' : null,
+      desc: (D.ethMcap&&D.totalMcap)
+        ? `ETH 점유율 ${((D.ethMcap/D.totalMcap)*100).toFixed(1)}%`
+        : '로딩 중...',
+    },
+    {
+      name:'7일 낙폭',
+      stars:'★★★☆☆',
+      thr:'-35% 이하 = 패닉 낙폭',
+      status: loading(D.ethChange7d) || sig(D.ethChange7d<=-35, D.ethChange7d<=-20),
+      value: D.ethChange7d!=null ? D.ethChange7d.toFixed(1)+'%' : null,
+      desc: D.ethChange7d!=null ? `7일 ${D.ethChange7d.toFixed(1)}%` : '로딩 중...',
+    },
+    {
+      name:'Vol / 시가총액',
+      stars:'★★★☆☆',
+      thr:'< 0.8% = 극단 냉각',
+      status: loading(D.ethVol&&D.ethMcap) || sig(D.ethVol/D.ethMcap<=0.008, D.ethVol/D.ethMcap<=0.012),
+      value: (D.ethVol&&D.ethMcap) ? ((D.ethVol/D.ethMcap)*100).toFixed(2)+'%' : null,
+      desc: (D.ethVol&&D.ethMcap) ? `24H $${fmtB(D.ethVol)} / MCap $${fmtB(D.ethMcap)}` : '로딩 중...',
+    },
+  ];
+}
+
+function getMktIndicators() {
+  return [
+    {
+      name:'Fear & Greed Index',
+      stars:'★★★★★',
+      thr:'≤ 10 = 극도의 공포',
+      status: loading(D.fearGreed) || sig(D.fearGreed<=20, D.fearGreed<=35),
+      value: D.fearGreed!=null ? `${Math.round(D.fearGreed)}/100` : null,
+      desc: D.fearGreed!=null ? `${D.fearGreedLabel}` : '로딩 중...',
+    },
+    {
+      name:'전체 크립토 시총',
+      stars:'★★★★☆',
+      thr:'< $600B = 극단 저평가',
+      status: loading(D.totalMcap) || sig(D.totalMcap<=6e11, D.totalMcap<=1e12),
+      value: D.totalMcap ? '$'+fmtB(D.totalMcap) : null,
+      desc: D.totalMcap ? `시총 $${fmtB(D.totalMcap)}` : '로딩 중...',
+    },
+    {
+      name:'BTC 도미넌스',
+      stars:'★★★☆☆',
+      thr:'> 60% = 위험자산 회피',
+      status: loading(D.btcDom) || sig(D.btcDom>=60, D.btcDom>=55),
+      value: D.btcDom!=null ? D.btcDom.toFixed(1)+'%' : null,
+      desc: D.btcDom!=null ? `BTC 점유율 ${D.btcDom.toFixed(1)}%` : '로딩 중...',
+    },
+    {
+      name:'Stablecoin 총 시총',
+      stars:'★★★★☆',
+      thr:'> $150B = 대기매수 자금 풍부',
+      status: loading(D.stableCap) || sig(D.stableCap>=1.5e11, D.stableCap>=1e11),
+      value: D.stableCap ? '$'+fmtB(D.stableCap) : null,
+      desc: D.stableCap ? `USDT+USDC $${fmtB(D.stableCap)}` : '로딩 중...',
+    },
+  ];
+}
+
+function getFudIndicators() {
+  return [
+    {
+      name:'BTC Funding Rate',
+      stars:'★★★★★',
+      thr:'< -0.05% 지속 = 숏스퀴즈 직전',
+      status: loading(D.btcFunding) || sig(D.btcFunding<=-0.001, D.btcFunding<0),
+      value: D.btcFunding!=null ? (D.btcFunding*100).toFixed(4)+'%' : null,
+      desc: D.btcFunding!=null
+        ? (D.btcFunding<=-0.001?'🔴 극단적 숏 과잉':D.btcFunding<0?'⚠️ 음수 펀딩':'정상')
+        : '로딩 중...',
+    },
+    {
+      name:'ETH Funding Rate',
+      stars:'★★★★★',
+      thr:'< -0.05% = 숏 과잉',
+      status: loading(D.ethFunding) || sig(D.ethFunding<=-0.001, D.ethFunding<0),
+      value: D.ethFunding!=null ? (D.ethFunding*100).toFixed(4)+'%' : null,
+      desc: D.ethFunding!=null
+        ? (D.ethFunding<=-0.001?'🔴 극단적 숏 과잉':D.ethFunding<0?'⚠️ 음수 펀딩':'정상')
+        : '로딩 중...',
+    },
+    {
+      name:'BTC Open Interest',
+      stars:'★★★★☆',
+      thr:'고점 대비 50%↓ = 디레버리징',
+      status: D.btcOI==null?'loading':'off',
+      value: D.btcOI ? '$'+fmtB(D.btcOI) : null,
+      desc: D.btcOI ? `현재 OI $${fmtB(D.btcOI)} (coinglass에서 추세 비교 권장)` : '로딩 중...',
+    },
+  ];
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════
+function renderList(containerId, indicators) {
+  const el = document.getElementById(containerId);
+  if (!el) return 0;
+  el.innerHTML = '';
+  let activeCount = 0;
+  indicators.forEach((ind, i) => {
+    const st = ind.status;
+    if (st === 'active') activeCount++;
+    const card = document.createElement('div');
+    card.className = `ind ${st==='active'?'hot':st==='warn'?'warm':''}`;
+    card.style.animationDelay = (i*0.04)+'s';
+    card.innerHTML = `
+      <div class="dot ${st}"></div>
+      <div class="ind-body">
+        <div class="ind-name">${ind.name}</div>
+        <div class="ind-desc">${ind.desc}</div>
+        <div class="ind-stars">${ind.stars}<span class="ind-thr">${ind.thr}</span></div>
+      </div>
+      <div class="ind-val-col">
+        <div class="ind-val ${st}">${ind.value ?? '...'}</div>
+      </div>
+    `;
+    el.appendChild(card);
+  });
+  return activeCount;
+}
+
+function getTag(active, total) {
+  const r = active/total;
+  if (r >= 0.6) return {txt:'🔴 바닥권 경고', color:'rgba(0,232,122,.12)', textColor:'#00e87a'};
+  if (r >= 0.3) return {txt:'⚠️ 주의 구간',   color:'rgba(255,184,48,.12)', textColor:'#ffb830'};
+  return               {txt:'📊 일반 구간',    color:'rgba(90,122,153,.1)',  textColor:'#5a7a99'};
+}
+
+function renderAll() {
+  // prices
+  if (D.btcPrice) {
+    document.getElementById('btcPrice').textContent = '$'+fmt(D.btcPrice);
+    const c = D.btcChange24h;
+    const el = document.getElementById('btcChg');
+    el.textContent = (c>=0?'+':'')+c?.toFixed(2)+'%';
+    el.className = 'p-chg '+(c>=0?'up':'dn');
+  }
+  if (D.ethPrice) {
+    document.getElementById('ethPrice').textContent = '$'+fmt(D.ethPrice);
+    const c = D.ethChange24h;
+    const el = document.getElementById('ethChg');
+    el.textContent = (c>=0?'+':'')+c?.toFixed(2)+'%';
+    el.className = 'p-chg '+(c>=0?'up':'dn');
+  }
+
+  // indicators
+  const btcA = renderList('btcList', getBtcIndicators());
+  const ethA = renderList('ethList', getEthIndicators());
+  renderList('mktList', getMktIndicators());
+  renderList('fudList', getFudIndicators());
+
+  // scores
+  const btcT = getTag(btcA, 10);
+  document.getElementById('btcScoreNum').innerHTML = `${btcA}<span class="mx">/10</span>`;
+  const btcTagEl = document.getElementById('btcTag');
+  btcTagEl.textContent = btcT.txt;
+  btcTagEl.style.background = btcT.color;
+  btcTagEl.style.color = btcT.textColor;
+  document.getElementById('btcCount').textContent = `${btcA}/10 활성`;
+
+  const ethT = getTag(ethA, 10);
+  document.getElementById('ethScoreNum').innerHTML = `${ethA}<span class="mx">/10</span>`;
+  const ethTagEl = document.getElementById('ethTag');
+  ethTagEl.textContent = ethT.txt;
+  ethTagEl.style.background = ethT.color;
+  ethTagEl.style.color = ethT.textColor;
+  document.getElementById('ethCount').textContent = `${ethA}/10 활성`;
+
+  // alert
+  const total = btcA + ethA;
+  const box = document.getElementById('alertBox');
+  const title = document.getElementById('alertTitle');
+  const body = document.getElementById('alertBody');
+  if (total >= 12) {
+    box.className='alert hot';
+    title.textContent='🚨 복합 바닥 신호 강하게 감지!';
+    body.textContent=`BTC ${btcA}개 + ETH ${ethA}개 신호 동시 충족. 역사적 바닥권 진입 가능성. 분할 매수 검토.`;
+  } else if (total >= 6) {
+    box.className='alert warm';
+    title.textContent='⚠️ 일부 바닥 신호 감지 중';
+    body.textContent=`BTC ${btcA}개 + ETH ${ethA}개 신호 충족. 추가 지표 모니터링 권장.`;
+  } else {
+    box.className='alert';
+    title.textContent='📡 현재 바닥 신호 없음';
+    body.textContent=`BTC ${btcA}개, ETH ${ethA}개 신호만 충족. 일반 시장 상황.`;
+  }
+
+  // time
+  document.getElementById('updatedTime').textContent =
+    '업데이트: '+new Date().toLocaleString('ko-KR');
+}
+
+// ═══════════════════════════════════════════════
+//  MAIN
+// ═══════════════════════════════════════════════
+async function init() {
+  document.getElementById('loadingBar').classList.add('show');
+  document.getElementById('refreshBtn').classList.add('spin');
+
+  await Promise.allSettled([
+    safe(fetchCoinGecko),
+    safe(fetchGlobal),
+    safe(fetchFearGreed),
+    safe(fetchFunding),
+    safe(fetchOI),
+    safe(fetchKlines),
+    safe(fetchGas),
+  ]);
+
+  renderAll();
+  document.getElementById('loadingBar').classList.remove('show');
+  document.getElementById('refreshBtn').classList.remove('spin');
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('pane-'+name).classList.add('on');
+}
+
+init();
+setInterval(init, 5*60*1000);
+</script>
+</body>
+</html>

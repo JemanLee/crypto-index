@@ -272,12 +272,12 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 <div class="scores">
   <div class="score-card btc">
     <div class="sc-lbl">BTC SIGNALS</div>
-    <div class="sc-num" id="btcScoreNum">--<span class="mx">/10</span></div>
+    <div class="sc-num" id="btcScoreNum">--<span class="mx">/6</span></div>
     <div class="sc-tag" id="btcTag">분석 중</div>
   </div>
   <div class="score-card eth">
     <div class="sc-lbl">ETH SIGNALS</div>
-    <div class="sc-num" id="ethScoreNum">--<span class="mx">/10</span></div>
+    <div class="sc-num" id="ethScoreNum">--<span class="mx">/7</span></div>
     <div class="sc-tag" id="ethTag">분석 중</div>
   </div>
 </div>
@@ -296,7 +296,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
       <span style="font-size:15px">🟠</span>
       <span class="sec-title">BTC 바닥 지표</span>
       <span class="sec-badge badge-live">● LIVE</span>
-      <span class="sec-badge badge-count" id="btcCount">--/10</span>
+      <span class="sec-badge badge-count" id="btcCount">--/6</span>
     </div>
     <div class="ind-list" id="btcList"></div>
   </div>
@@ -309,7 +309,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
       <span style="font-size:15px">🔵</span>
       <span class="sec-title">ETH 바닥 지표</span>
       <span class="sec-badge badge-live">● LIVE</span>
-      <span class="sec-badge badge-count" id="ethCount">--/10</span>
+      <span class="sec-badge badge-count" id="ethCount">--/7</span>
     </div>
     <div class="ind-list" id="ethList"></div>
   </div>
@@ -362,17 +362,13 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 const D = {
   btcPrice:null, ethPrice:null,
   btcChange24h:null, ethChange24h:null,
-  btcChange7d:null, ethChange7d:null,
   btcAth:null, ethAth:null,
   btcMcap:null, ethMcap:null, totalMcap:null,
-  btcVol:null, ethVol:null,
   btcDom:null,
   btcMa200:null, ethMa200:null,
   btcFunding:null, ethFunding:null,
-  btcOI:null,
   fearGreed:null, fearGreedLabel:null,
   stableCap:null,
-  ethGas:null,
 };
 
 // ═══════════════════════════════════════════════
@@ -385,7 +381,7 @@ async function fetchCoinGecko() {
     'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd' +
     '&ids=bitcoin,ethereum,tether,usd-coin' +
     '&order=market_cap_desc&per_page=10&page=1' +
-    '&price_change_percentage=24h,7d'
+    '&price_change_percentage=24h'
   );
   const list = await r.json();
   const get = id => list.find(c => c.id === id);
@@ -395,17 +391,13 @@ async function fetchCoinGecko() {
     D.btcPrice = btc.current_price;
     D.btcAth = btc.ath;
     D.btcChange24h = btc.price_change_percentage_24h;
-    D.btcChange7d = btc.price_change_percentage_7d_in_currency;
     D.btcMcap = btc.market_cap;
-    D.btcVol = btc.total_volume;
   }
   if (eth) {
     D.ethPrice = eth.current_price;
     D.ethAth = eth.ath;
     D.ethChange24h = eth.price_change_percentage_24h;
-    D.ethChange7d = eth.price_change_percentage_7d_in_currency;
     D.ethMcap = eth.market_cap;
-    D.ethVol = eth.total_volume;
   }
   D.stableCap = (usdt?.market_cap||0) + (usdc?.market_cap||0);
 }
@@ -435,12 +427,6 @@ async function fetchFunding() {
   if (de[0]) D.ethFunding = parseFloat(de[0].fundingRate);
 }
 
-async function fetchOI() {
-  const r = await fetch('https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT');
-  const d = await r.json();
-  if (d.openInterest && D.btcPrice) D.btcOI = parseFloat(d.openInterest) * D.btcPrice;
-}
-
 async function fetchKlines() {
   const [rb, re] = await Promise.all([
     fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=200'),
@@ -458,12 +444,7 @@ async function fetchKlines() {
   }
 }
 
-async function fetchGas() {
-  // Etherscan public (no key needed for gas oracle)
-  const r = await fetch('https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=YourApiKeyToken');
-  const d = await r.json();
-  if (d.result?.SafeGasPrice) D.ethGas = parseFloat(d.result.SafeGasPrice);
-}
+
 
 // ═══════════════════════════════════════════════
 //  INDICATORS
@@ -502,8 +483,8 @@ function getBtcIndicators() {
     {
       name:'ATH 대비 낙폭 (MDD)',
       stars:'★★★★☆',
-      thr:'-80% 이하 = 역사적 바닥권',
-      status: loading(D.btcPrice&&D.btcAth) || sig((D.btcPrice/D.btcAth-1)*100<=-80, (D.btcPrice/D.btcAth-1)*100<=-60),
+      thr:'-50% 이하 = 바닥권 진입',
+      status: loading(D.btcPrice&&D.btcAth) || sig((D.btcPrice/D.btcAth-1)*100<=-50, (D.btcPrice/D.btcAth-1)*100<=-35),
       value: D.btcAth ? pct(D.btcPrice,D.btcAth)+'%' : null,
       desc: D.btcAth ? `ATH $${fmt(D.btcAth)}대비 ${pct(D.btcPrice,D.btcAth)}%` : '로딩 중...',
     },
@@ -526,16 +507,6 @@ function getBtcIndicators() {
       desc: D.fearGreed!=null ? `${Math.round(D.fearGreed)}/100 — ${D.fearGreedLabel}` : '로딩 중...',
     },
     {
-      name:'BTC 도미넌스',
-      stars:'★★★☆☆',
-      thr:'> 60% = 알트 패닉매도',
-      status: loading(D.btcDom) || sig(D.btcDom>=60, D.btcDom>=55),
-      value: D.btcDom!=null ? D.btcDom.toFixed(1)+'%' : null,
-      desc: D.btcDom!=null
-        ? (D.btcDom>=60?`${D.btcDom.toFixed(1)}% — 알트 패닉 ⚠️`:`${D.btcDom.toFixed(1)}% — 일반`)
-        : '로딩 중...',
-    },
-    {
       name:'Stablecoin 비율 (SSR대용)',
       stars:'★★★★☆',
       thr:'stable/BTC 시총 > 18% = 매수여력 풍부',
@@ -546,38 +517,10 @@ function getBtcIndicators() {
         : '로딩 중...',
     },
     {
-      name:'Vol / 시가총액',
-      stars:'★★★☆☆',
-      thr:'< 1% = 시장 냉각',
-      status: loading(D.btcVol&&D.btcMcap) || sig(D.btcVol/D.btcMcap<=0.01, D.btcVol/D.btcMcap<=0.015),
-      value: (D.btcVol&&D.btcMcap) ? ((D.btcVol/D.btcMcap)*100).toFixed(2)+'%' : null,
-      desc: (D.btcVol&&D.btcMcap)
-        ? `24H $${fmtB(D.btcVol)} / MCap $${fmtB(D.btcMcap)}`
-        : '로딩 중...',
-    },
-    {
-      name:'ETH/BTC 비율',
-      stars:'★★★☆☆',
-      thr:'< 0.025 = ETH 극단 약세',
-      status: loading(D.ethPrice&&D.btcPrice) || sig(D.ethPrice/D.btcPrice<=0.025, D.ethPrice/D.btcPrice<=0.035),
-      value: (D.ethPrice&&D.btcPrice) ? (D.ethPrice/D.btcPrice).toFixed(4) : null,
-      desc: (D.ethPrice&&D.btcPrice)
-        ? `ETH/BTC = ${(D.ethPrice/D.btcPrice).toFixed(4)}`
-        : '로딩 중...',
-    },
-    {
-      name:'7일 낙폭',
-      stars:'★★★☆☆',
-      thr:'-30% 이하 = 패닉 낙폭',
-      status: loading(D.btcChange7d) || sig(D.btcChange7d<=-30, D.btcChange7d<=-20),
-      value: D.btcChange7d!=null ? D.btcChange7d.toFixed(1)+'%' : null,
-      desc: D.btcChange7d!=null ? `7일 ${D.btcChange7d.toFixed(1)}%` : '로딩 중...',
-    },
-    {
       name:'전체 크립토 시총',
-      stars:'★★★☆☆',
-      thr:'< $600B = 극단 저평가',
-      status: loading(D.totalMcap) || sig(D.totalMcap<=6e11, D.totalMcap<=1e12),
+      stars:'★★★★☆',
+      thr:'< $1.2T = 시장 저평가',
+      status: loading(D.totalMcap) || sig(D.totalMcap<=1.2e12, D.totalMcap<=1.8e12),
       value: D.totalMcap ? '$'+fmtB(D.totalMcap) : null,
       desc: D.totalMcap ? `전체 $${fmtB(D.totalMcap)}` : '로딩 중...',
     },
@@ -600,8 +543,8 @@ function getEthIndicators() {
     {
       name:'ATH 대비 낙폭 (MDD)',
       stars:'★★★★☆',
-      thr:'-85% 이하 = 역사적 바닥권',
-      status: loading(D.ethPrice&&D.ethAth) || sig((D.ethPrice/D.ethAth-1)*100<=-85, (D.ethPrice/D.ethAth-1)*100<=-65),
+      thr:'-60% 이하 = 바닥권 진입',
+      status: loading(D.ethPrice&&D.ethAth) || sig((D.ethPrice/D.ethAth-1)*100<=-60, (D.ethPrice/D.ethAth-1)*100<=-45),
       value: D.ethAth ? pct(D.ethPrice,D.ethAth)+'%' : null,
       desc: D.ethAth ? `ATH $${fmt(D.ethAth)} 대비 ${pct(D.ethPrice,D.ethAth)}%` : '로딩 중...',
     },
@@ -634,17 +577,6 @@ function getEthIndicators() {
         : '로딩 중...',
     },
     {
-      name:'ETH 가스비',
-      stars:'★★★★☆',
-      thr:'< 5 Gwei = 온체인 활동 극감',
-      status: loading(D.ethGas) || sig(D.ethGas<=5, D.ethGas<=10),
-      value: D.ethGas!=null ? D.ethGas.toFixed(1)+' Gwei' : null,
-      desc: D.ethGas!=null
-        ? (D.ethGas<=5?`${D.ethGas.toFixed(1)} Gwei 🔴 온체인 극감`:
-           D.ethGas<=10?`${D.ethGas.toFixed(1)} Gwei ⚠️ 낮은 활동`:`${D.ethGas.toFixed(1)} Gwei 정상`)
-        : '로딩 중...',
-    },
-    {
       name:'Stablecoin/ETH 시총 비율',
       stars:'★★★★☆',
       thr:'> 50% = 매수여력 풍부',
@@ -662,22 +594,7 @@ function getEthIndicators() {
         ? `ETH 점유율 ${((D.ethMcap/D.totalMcap)*100).toFixed(1)}%`
         : '로딩 중...',
     },
-    {
-      name:'7일 낙폭',
-      stars:'★★★☆☆',
-      thr:'-35% 이하 = 패닉 낙폭',
-      status: loading(D.ethChange7d) || sig(D.ethChange7d<=-35, D.ethChange7d<=-20),
-      value: D.ethChange7d!=null ? D.ethChange7d.toFixed(1)+'%' : null,
-      desc: D.ethChange7d!=null ? `7일 ${D.ethChange7d.toFixed(1)}%` : '로딩 중...',
-    },
-    {
-      name:'Vol / 시가총액',
-      stars:'★★★☆☆',
-      thr:'< 0.8% = 극단 냉각',
-      status: loading(D.ethVol&&D.ethMcap) || sig(D.ethVol/D.ethMcap<=0.008, D.ethVol/D.ethMcap<=0.012),
-      value: (D.ethVol&&D.ethMcap) ? ((D.ethVol/D.ethMcap)*100).toFixed(2)+'%' : null,
-      desc: (D.ethVol&&D.ethMcap) ? `24H $${fmtB(D.ethVol)} / MCap $${fmtB(D.ethMcap)}` : '로딩 중...',
-    },
+
   ];
 }
 
@@ -694,8 +611,8 @@ function getMktIndicators() {
     {
       name:'전체 크립토 시총',
       stars:'★★★★☆',
-      thr:'< $600B = 극단 저평가',
-      status: loading(D.totalMcap) || sig(D.totalMcap<=6e11, D.totalMcap<=1e12),
+      thr:'< $1.2T = 시장 저평가',
+      status: loading(D.totalMcap) || sig(D.totalMcap<=1.2e12, D.totalMcap<=1.8e12),
       value: D.totalMcap ? '$'+fmtB(D.totalMcap) : null,
       desc: D.totalMcap ? `시총 $${fmtB(D.totalMcap)}` : '로딩 중...',
     },
@@ -740,14 +657,7 @@ function getFudIndicators() {
         ? (D.ethFunding<=-0.001?'🔴 극단적 숏 과잉':D.ethFunding<0?'⚠️ 음수 펀딩':'정상')
         : '로딩 중...',
     },
-    {
-      name:'BTC Open Interest',
-      stars:'★★★★☆',
-      thr:'고점 대비 50%↓ = 디레버리징',
-      status: D.btcOI==null?'loading':'off',
-      value: D.btcOI ? '$'+fmtB(D.btcOI) : null,
-      desc: D.btcOI ? `현재 OI $${fmtB(D.btcOI)} (coinglass에서 추세 비교 권장)` : '로딩 중...',
-    },
+
   ];
 }
 
@@ -812,39 +722,39 @@ function renderAll() {
   renderList('fudList', getFudIndicators());
 
   // scores
-  const btcT = getTag(btcA, 10);
-  document.getElementById('btcScoreNum').innerHTML = `${btcA}<span class="mx">/10</span>`;
+  const btcT = getTag(btcA, 6);
+  document.getElementById('btcScoreNum').innerHTML = `${btcA}<span class="mx">/6</span>`;
   const btcTagEl = document.getElementById('btcTag');
   btcTagEl.textContent = btcT.txt;
   btcTagEl.style.background = btcT.color;
   btcTagEl.style.color = btcT.textColor;
-  document.getElementById('btcCount').textContent = `${btcA}/10 활성`;
+  document.getElementById('btcCount').textContent = `${btcA}/6 활성`;
 
-  const ethT = getTag(ethA, 10);
-  document.getElementById('ethScoreNum').innerHTML = `${ethA}<span class="mx">/10</span>`;
+  const ethT = getTag(ethA, 7);
+  document.getElementById('ethScoreNum').innerHTML = `${ethA}<span class="mx">/7</span>`;
   const ethTagEl = document.getElementById('ethTag');
   ethTagEl.textContent = ethT.txt;
   ethTagEl.style.background = ethT.color;
   ethTagEl.style.color = ethT.textColor;
-  document.getElementById('ethCount').textContent = `${ethA}/10 활성`;
+  document.getElementById('ethCount').textContent = `${ethA}/7 활성`;
 
   // alert
   const total = btcA + ethA;
   const box = document.getElementById('alertBox');
   const title = document.getElementById('alertTitle');
   const body = document.getElementById('alertBody');
-  if (total >= 12) {
+  if (total >= 8) {
     box.className='alert hot';
     title.textContent='🚨 복합 바닥 신호 강하게 감지!';
-    body.textContent=`BTC ${btcA}개 + ETH ${ethA}개 신호 동시 충족. 역사적 바닥권 진입 가능성. 분할 매수 검토.`;
-  } else if (total >= 6) {
+    body.textContent=`BTC ${btcA}/6 + ETH ${ethA}/7 신호 동시 충족. 역사적 바닥권 진입 가능성. 분할 매수 검토.`;
+  } else if (total >= 4) {
     box.className='alert warm';
     title.textContent='⚠️ 일부 바닥 신호 감지 중';
-    body.textContent=`BTC ${btcA}개 + ETH ${ethA}개 신호 충족. 추가 지표 모니터링 권장.`;
+    body.textContent=`BTC ${btcA}/6 + ETH ${ethA}/7 신호 충족. 추가 지표 모니터링 권장.`;
   } else {
     box.className='alert';
     title.textContent='📡 현재 바닥 신호 없음';
-    body.textContent=`BTC ${btcA}개, ETH ${ethA}개 신호만 충족. 일반 시장 상황.`;
+    body.textContent=`BTC ${btcA}/6, ETH ${ethA}/7 신호만 충족. 일반 시장 상황.`;
   }
 
   // time
@@ -864,9 +774,7 @@ async function init() {
     safe(fetchGlobal),
     safe(fetchFearGreed),
     safe(fetchFunding),
-    safe(fetchOI),
     safe(fetchKlines),
-    safe(fetchGas),
   ]);
 
   renderAll();

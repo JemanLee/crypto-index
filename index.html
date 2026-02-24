@@ -295,7 +295,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
       <span style="font-size:15px">🟠</span>
       <span class="sec-title">BTC 바닥 지표</span>
       <span class="sec-badge badge-live">● LIVE</span>
-      <span class="sec-badge badge-count" id="btcCount">--/5</span>
+      <span class="sec-badge badge-count" id="btcCount">--/8</span>
     </div>
     <div class="ind-list" id="btcList"></div>
   </div>
@@ -308,7 +308,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
       <span style="font-size:15px">🔵</span>
       <span class="sec-title">ETH 바닥 지표</span>
       <span class="sec-badge badge-live">● LIVE</span>
-      <span class="sec-badge badge-count" id="ethCount">--/7</span>
+      <span class="sec-badge badge-count" id="ethCount">--/10</span>
     </div>
     <div class="ind-list" id="ethList"></div>
   </div>
@@ -334,7 +334,9 @@ const D = {
   btcAth:null, ethAth:null,
   btcMcap:null, ethMcap:null, totalMcap:null,
   btcMa200:null, ethMa200:null,
+  btcRsi:null, ethRsi:null,
   btcFunding:null, ethFunding:null,
+  btcLongShort:null, ethLongShort:null,
   fearGreed:null, fearGreedLabel:null,
   stableCap:null,
 };
@@ -394,6 +396,23 @@ async function fetchFunding() {
   if (de[0]) D.ethFunding = parseFloat(de[0].fundingRate);
 }
 
+function calcRSI(closes, period=14) {
+  if (closes.length < period+1) return null;
+  let gains=0, losses=0;
+  for (let i=1; i<=period; i++) {
+    const diff = closes[i]-closes[i-1];
+    if (diff>=0) gains+=diff; else losses-=diff;
+  }
+  let avgGain=gains/period, avgLoss=losses/period;
+  for (let i=period+1; i<closes.length; i++) {
+    const diff = closes[i]-closes[i-1];
+    avgGain = (avgGain*(period-1)+(diff>0?diff:0))/period;
+    avgLoss = (avgLoss*(period-1)+(diff<0?-diff:0))/period;
+  }
+  if (avgLoss===0) return 100;
+  return 100 - 100/(1+avgGain/avgLoss);
+}
+
 async function fetchKlines() {
   const [rb, re] = await Promise.all([
     fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=200'),
@@ -404,14 +423,25 @@ async function fetchKlines() {
   if (Array.isArray(kb) && kb.length >= 200) {
     const c = kb.map(k => parseFloat(k[4]));
     D.btcMa200 = c.reduce((a,b)=>a+b,0)/c.length;
+    D.btcRsi = calcRSI(c);
   }
   if (Array.isArray(ke) && ke.length >= 200) {
     const c = ke.map(k => parseFloat(k[4]));
     D.ethMa200 = c.reduce((a,b)=>a+b,0)/c.length;
+    D.ethRsi = calcRSI(c);
   }
 }
 
-
+async function fetchLongShort() {
+  const [rb, re] = await Promise.all([
+    fetch('https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol=BTCUSDT&period=1h&limit=1'),
+    fetch('https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol=ETHUSDT&period=1h&limit=1'),
+  ]);
+  const db = await rb.json();
+  const de = await re.json();
+  if (Array.isArray(db) && db[0]) D.btcLongShort = parseFloat(db[0].longShortRatio);
+  if (Array.isArray(de) && de[0]) D.ethLongShort = parseFloat(de[0].longShortRatio);
+}
 
 // ═══════════════════════════════════════════════
 //  INDICATORS
@@ -483,6 +513,39 @@ function getBtcIndicators() {
         ? `Stable $${fmtB(stable)} / BTC $${fmtB(D.btcMcap)}`
         : '로딩 중...',
     },
+    {
+      name:'RSI (14일)',
+      stars:'★★★★★',
+      thr:'≤ 30 = 과매도 구간',
+      status: loading(D.btcRsi) || sig(D.btcRsi<=30, D.btcRsi<=40),
+      value: D.btcRsi!=null ? D.btcRsi.toFixed(1) : null,
+      desc: D.btcRsi!=null
+        ? (D.btcRsi<=30?'과매도 — 반등 가능성 높음 🔴':D.btcRsi<=40?'약세 구간 ⚠️':`RSI ${D.btcRsi.toFixed(1)} — 정상`)
+        : '로딩 중...',
+      detail:'RSI(Relative Strength Index)가 30 이하면 과매도 상태. 14일간 하락 압력이 극단적으로 누적된 상태로, 기술적 반등 가능성이 높아지는 구간.',
+    },
+    {
+      name:'Top Trader Long/Short',
+      stars:'★★★★☆',
+      thr:'≤ 0.85 = 숏 과잉 (역발상 매수)',
+      status: loading(D.btcLongShort) || sig(D.btcLongShort<=0.85, D.btcLongShort<=1.0),
+      value: D.btcLongShort!=null ? D.btcLongShort.toFixed(2) : null,
+      desc: D.btcLongShort!=null
+        ? (D.btcLongShort<=0.85?'숏 과잉 — 스퀴즈 가능 🔴':D.btcLongShort<=1.0?'숏 우세 ⚠️':`롱 우세 ${D.btcLongShort.toFixed(2)}`)
+        : '로딩 중...',
+      detail:'바이낸스 선물 상위 트레이더의 롱/숏 비율. 1 미만이면 숏이 더 많다는 뜻. 극단적 숏 과잉은 숏스퀴즈로 이어질 수 있음.',
+    },
+    {
+      name:'24h 급락 (패닉셀링)',
+      stars:'★★★★☆',
+      thr:'≤ -10% = 패닉 매도',
+      status: loading(D.btcChange24h) || sig(D.btcChange24h<=-10, D.btcChange24h<=-5),
+      value: D.btcChange24h!=null ? D.btcChange24h.toFixed(2)+'%' : null,
+      desc: D.btcChange24h!=null
+        ? (D.btcChange24h<=-10?'패닉셀링 감지 🔴':D.btcChange24h<=-5?'급락 진행 ⚠️':`${D.btcChange24h.toFixed(2)}% — 정상`)
+        : '로딩 중...',
+      detail:'24시간 내 -10% 이상 급락은 패닉셀링을 의미. 역사적으로 극단적 단기 하락 후 강한 반등이 자주 발생.',
+    },
   ];
 }
 
@@ -553,7 +616,39 @@ function getEthIndicators() {
         ? `ETH 점유율 ${((D.ethMcap/D.totalMcap)*100).toFixed(1)}%`
         : '로딩 중...',
     },
-
+    {
+      name:'RSI (14일)',
+      stars:'★★★★★',
+      thr:'≤ 30 = 과매도 구간',
+      status: loading(D.ethRsi) || sig(D.ethRsi<=30, D.ethRsi<=40),
+      value: D.ethRsi!=null ? D.ethRsi.toFixed(1) : null,
+      desc: D.ethRsi!=null
+        ? (D.ethRsi<=30?'과매도 — 반등 가능성 높음 🔴':D.ethRsi<=40?'약세 구간 ⚠️':`RSI ${D.ethRsi.toFixed(1)} — 정상`)
+        : '로딩 중...',
+      detail:'RSI 30 이하는 극단적 과매도. ETH는 변동성이 커서 RSI가 BTC보다 더 극단값에 자주 도달함.',
+    },
+    {
+      name:'Top Trader Long/Short',
+      stars:'★★★★☆',
+      thr:'≤ 0.85 = 숏 과잉 (역발상 매수)',
+      status: loading(D.ethLongShort) || sig(D.ethLongShort<=0.85, D.ethLongShort<=1.0),
+      value: D.ethLongShort!=null ? D.ethLongShort.toFixed(2) : null,
+      desc: D.ethLongShort!=null
+        ? (D.ethLongShort<=0.85?'숏 과잉 — 스퀴즈 가능 🔴':D.ethLongShort<=1.0?'숏 우세 ⚠️':`롱 우세 ${D.ethLongShort.toFixed(2)}`)
+        : '로딩 중...',
+      detail:'바이낸스 상위 트레이더 롱/숏 비율. 숏 과잉 시 역발상 매수 기회.',
+    },
+    {
+      name:'24h 급락 (패닉셀링)',
+      stars:'★★★★☆',
+      thr:'≤ -12% = 패닉 매도',
+      status: loading(D.ethChange24h) || sig(D.ethChange24h<=-12, D.ethChange24h<=-7),
+      value: D.ethChange24h!=null ? D.ethChange24h.toFixed(2)+'%' : null,
+      desc: D.ethChange24h!=null
+        ? (D.ethChange24h<=-12?'패닉셀링 감지 🔴':D.ethChange24h<=-7?'급락 진행 ⚠️':`${D.ethChange24h.toFixed(2)}% — 정상`)
+        : '로딩 중...',
+      detail:'ETH는 BTC보다 변동성이 커서 -12% 기준 적용. 극단적 단기 하락 후 반등 확률이 높음.',
+    },
   ];
 }
 
@@ -618,39 +713,39 @@ function renderAll() {
   const ethA = renderList('ethList', getEthIndicators());
 
   // scores
-  const btcT = getTag(btcA, 5);
-  document.getElementById('btcScoreNum').innerHTML = `${btcA}<span class="mx">/5</span>`;
+  const btcT = getTag(btcA, 8);
+  document.getElementById('btcScoreNum').innerHTML = `${btcA}<span class="mx">/8</span>`;
   const btcTagEl = document.getElementById('btcTag');
   btcTagEl.textContent = btcT.txt;
   btcTagEl.style.background = btcT.color;
   btcTagEl.style.color = btcT.textColor;
-  document.getElementById('btcCount').textContent = `${btcA}/5 활성`;
+  document.getElementById('btcCount').textContent = `${btcA}/8 활성`;
 
-  const ethT = getTag(ethA, 7);
-  document.getElementById('ethScoreNum').innerHTML = `${ethA}<span class="mx">/7</span>`;
+  const ethT = getTag(ethA, 10);
+  document.getElementById('ethScoreNum').innerHTML = `${ethA}<span class="mx">/10</span>`;
   const ethTagEl = document.getElementById('ethTag');
   ethTagEl.textContent = ethT.txt;
   ethTagEl.style.background = ethT.color;
   ethTagEl.style.color = ethT.textColor;
-  document.getElementById('ethCount').textContent = `${ethA}/7 활성`;
+  document.getElementById('ethCount').textContent = `${ethA}/10 활성`;
 
   // alert
   const total = btcA + ethA;
   const box = document.getElementById('alertBox');
   const title = document.getElementById('alertTitle');
   const body = document.getElementById('alertBody');
-  if (total >= 7) {
+  if (total >= 10) {
     box.className='alert hot';
     title.textContent='🚨 복합 바닥 신호 강하게 감지!';
-    body.textContent=`BTC ${btcA}/5 + ETH ${ethA}/7 신호 동시 충족. 역사적 바닥권 진입 가능성. 분할 매수 검토.`;
-  } else if (total >= 4) {
+    body.textContent=`BTC ${btcA}/8 + ETH ${ethA}/10 신호 동시 충족. 역사적 바닥권 진입 가능성. 분할 매수 검토.`;
+  } else if (total >= 6) {
     box.className='alert warm';
     title.textContent='⚠️ 일부 바닥 신호 감지 중';
-    body.textContent=`BTC ${btcA}/5 + ETH ${ethA}/7 신호 충족. 추가 지표 모니터링 권장.`;
+    body.textContent=`BTC ${btcA}/8 + ETH ${ethA}/10 신호 충족. 추가 지표 모니터링 권장.`;
   } else {
     box.className='alert';
     title.textContent='📡 현재 바닥 신호 없음';
-    body.textContent=`BTC ${btcA}/5, ETH ${ethA}/7 신호만 충족. 일반 시장 상황.`;
+    body.textContent=`BTC ${btcA}/8, ETH ${ethA}/10 신호만 충족. 일반 시장 상황.`;
   }
 
   // time
@@ -671,6 +766,7 @@ async function init() {
     safe(fetchFearGreed),
     safe(fetchFunding),
     safe(fetchKlines),
+    safe(fetchLongShort),
   ]);
 
   renderAll();

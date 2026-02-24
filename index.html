@@ -272,12 +272,12 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 <div class="scores">
   <div class="score-card btc">
     <div class="sc-lbl">BTC SIGNALS</div>
-    <div class="sc-num" id="btcScoreNum">--<span class="mx">/5</span></div>
+    <div class="sc-num" id="btcScoreNum">--<span class="mx">/9</span></div>
     <div class="sc-tag" id="btcTag">분석 중</div>
   </div>
   <div class="score-card eth">
     <div class="sc-lbl">ETH SIGNALS</div>
-    <div class="sc-num" id="ethScoreNum">--<span class="mx">/7</span></div>
+    <div class="sc-num" id="ethScoreNum">--<span class="mx">/11</span></div>
     <div class="sc-tag" id="ethTag">분석 중</div>
   </div>
 </div>
@@ -295,7 +295,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
       <span style="font-size:15px">🟠</span>
       <span class="sec-title">BTC 바닥 지표</span>
       <span class="sec-badge badge-live">● LIVE</span>
-      <span class="sec-badge badge-count" id="btcCount">--/8</span>
+      <span class="sec-badge badge-count" id="btcCount">--/9</span>
     </div>
     <div class="ind-list" id="btcList"></div>
   </div>
@@ -308,7 +308,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
       <span style="font-size:15px">🔵</span>
       <span class="sec-title">ETH 바닥 지표</span>
       <span class="sec-badge badge-live">● LIVE</span>
-      <span class="sec-badge badge-count" id="ethCount">--/10</span>
+      <span class="sec-badge badge-count" id="ethCount">--/11</span>
     </div>
     <div class="ind-list" id="ethList"></div>
   </div>
@@ -337,6 +337,7 @@ const D = {
   btcRsi:null, ethRsi:null,
   btcFunding:null, ethFunding:null,
   btcLongShort:null, ethLongShort:null,
+  btcZScore:null, ethZScore:null,
   fearGreed:null, fearGreedLabel:null,
   stableCap:null,
 };
@@ -413,22 +414,35 @@ function calcRSI(closes, period=14) {
   return 100 - 100/(1+avgGain/avgLoss);
 }
 
+function calcZScore(closes) {
+  if (closes.length < 30) return null;
+  const mean = closes.reduce((a,b)=>a+b,0)/closes.length;
+  const variance = closes.reduce((s,v)=>s+(v-mean)**2,0)/closes.length;
+  const std = Math.sqrt(variance);
+  if (std===0) return 0;
+  return (closes[closes.length-1] - mean) / std;
+}
+
 async function fetchKlines() {
   const [rb, re] = await Promise.all([
-    fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=200'),
-    fetch('https://api.binance.com/api/v3/klines?symbol=ETHUSDT&interval=1d&limit=200'),
+    fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=365'),
+    fetch('https://api.binance.com/api/v3/klines?symbol=ETHUSDT&interval=1d&limit=365'),
   ]);
   const kb = await rb.json();
   const ke = await re.json();
   if (Array.isArray(kb) && kb.length >= 200) {
     const c = kb.map(k => parseFloat(k[4]));
-    D.btcMa200 = c.reduce((a,b)=>a+b,0)/c.length;
+    const last200 = c.slice(-200);
+    D.btcMa200 = last200.reduce((a,b)=>a+b,0)/last200.length;
     D.btcRsi = calcRSI(c);
+    D.btcZScore = calcZScore(c);
   }
   if (Array.isArray(ke) && ke.length >= 200) {
     const c = ke.map(k => parseFloat(k[4]));
-    D.ethMa200 = c.reduce((a,b)=>a+b,0)/c.length;
+    const last200 = c.slice(-200);
+    D.ethMa200 = last200.reduce((a,b)=>a+b,0)/last200.length;
     D.ethRsi = calcRSI(c);
+    D.ethZScore = calcZScore(c);
   }
 }
 
@@ -546,6 +560,17 @@ function getBtcIndicators() {
         : '로딩 중...',
       detail:'24시간 내 -10% 이상 급락은 패닉셀링을 의미. 역사적으로 극단적 단기 하락 후 강한 반등이 자주 발생.',
     },
+    {
+      name:'Price Z-Score (365일)',
+      stars:'★★★★★',
+      thr:'≤ -1.0 = 바닥권 (저평가)',
+      status: loading(D.btcZScore) || sig(D.btcZScore<=-1.0, D.btcZScore<=-0.5),
+      value: D.btcZScore!=null ? D.btcZScore.toFixed(2) : null,
+      desc: D.btcZScore!=null
+        ? (D.btcZScore<=-1.0?'역사적 저평가 구간 🔴':D.btcZScore<=-0.5?'평균 이하 — 주의 ⚠️':`Z=${D.btcZScore.toFixed(2)} — 정상`)
+        : '로딩 중...',
+      detail:'365일 가격 평균·표준편차 기반 Z-점수. Z<-1이면 장기 평균 대비 크게 저평가된 바닥권.',
+    },
   ];
 }
 
@@ -649,6 +674,17 @@ function getEthIndicators() {
         : '로딩 중...',
       detail:'ETH는 BTC보다 변동성이 커서 -12% 기준 적용. 극단적 단기 하락 후 반등 확률이 높음.',
     },
+    {
+      name:'Price Z-Score (365일)',
+      stars:'★★★★★',
+      thr:'≤ -1.0 = 바닥권 (저평가)',
+      status: loading(D.ethZScore) || sig(D.ethZScore<=-1.0, D.ethZScore<=-0.5),
+      value: D.ethZScore!=null ? D.ethZScore.toFixed(2) : null,
+      desc: D.ethZScore!=null
+        ? (D.ethZScore<=-1.0?'역사적 저평가 구간 🔴':D.ethZScore<=-0.5?'평균 이하 — 주의 ⚠️':`Z=${D.ethZScore.toFixed(2)} — 정상`)
+        : '로딩 중...',
+      detail:'365일 가격 평균·표준편차 기반 Z-점수. Z<-1이면 장기 평균 대비 크게 저평가. ETH는 변동성이 커서 Z값이 극단적으로 갈 수 있음.',
+    },
   ];
 }
 
@@ -713,39 +749,39 @@ function renderAll() {
   const ethA = renderList('ethList', getEthIndicators());
 
   // scores
-  const btcT = getTag(btcA, 8);
-  document.getElementById('btcScoreNum').innerHTML = `${btcA}<span class="mx">/8</span>`;
+  const btcT = getTag(btcA, 9);
+  document.getElementById('btcScoreNum').innerHTML = `${btcA}<span class="mx">/9</span>`;
   const btcTagEl = document.getElementById('btcTag');
   btcTagEl.textContent = btcT.txt;
   btcTagEl.style.background = btcT.color;
   btcTagEl.style.color = btcT.textColor;
-  document.getElementById('btcCount').textContent = `${btcA}/8 활성`;
+  document.getElementById('btcCount').textContent = `${btcA}/9 활성`;
 
-  const ethT = getTag(ethA, 10);
-  document.getElementById('ethScoreNum').innerHTML = `${ethA}<span class="mx">/10</span>`;
+  const ethT = getTag(ethA, 11);
+  document.getElementById('ethScoreNum').innerHTML = `${ethA}<span class="mx">/11</span>`;
   const ethTagEl = document.getElementById('ethTag');
   ethTagEl.textContent = ethT.txt;
   ethTagEl.style.background = ethT.color;
   ethTagEl.style.color = ethT.textColor;
-  document.getElementById('ethCount').textContent = `${ethA}/10 활성`;
+  document.getElementById('ethCount').textContent = `${ethA}/11 활성`;
 
   // alert
   const total = btcA + ethA;
   const box = document.getElementById('alertBox');
   const title = document.getElementById('alertTitle');
   const body = document.getElementById('alertBody');
-  if (total >= 10) {
+  if (total >= 12) {
     box.className='alert hot';
     title.textContent='🚨 복합 바닥 신호 강하게 감지!';
-    body.textContent=`BTC ${btcA}/8 + ETH ${ethA}/10 신호 동시 충족. 역사적 바닥권 진입 가능성. 분할 매수 검토.`;
-  } else if (total >= 6) {
+    body.textContent=`BTC ${btcA}/9 + ETH ${ethA}/11 신호 동시 충족. 역사적 바닥권 진입 가능성. 분할 매수 검토.`;
+  } else if (total >= 7) {
     box.className='alert warm';
     title.textContent='⚠️ 일부 바닥 신호 감지 중';
-    body.textContent=`BTC ${btcA}/8 + ETH ${ethA}/10 신호 충족. 추가 지표 모니터링 권장.`;
+    body.textContent=`BTC ${btcA}/9 + ETH ${ethA}/11 신호 충족. 추가 지표 모니터링 권장.`;
   } else {
     box.className='alert';
     title.textContent='📡 현재 바닥 신호 없음';
-    body.textContent=`BTC ${btcA}/8, ETH ${ethA}/10 신호만 충족. 일반 시장 상황.`;
+    body.textContent=`BTC ${btcA}/9, ETH ${ethA}/11 신호만 충족. 일반 시장 상황.`;
   }
 
   // time

@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="바닥레이더">
-<title>₿ 바닥 신호 레이더</title>
+<title>바닥 신호 레이더</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+KR:wght@300;400;700;900&display=swap" rel="stylesheet">
 <style>
@@ -89,18 +89,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 .p-chg { font-family:'Space Mono',monospace; font-size:12px; font-weight:700; }
 .up { color:var(--green); } .dn { color:var(--red); }
 
-/* ── ALERT ── */
-.alert {
-  margin:0 18px 14px;
-  border-radius:14px; padding:14px 16px;
-  border:1px solid var(--border2);
-  background:var(--panel);
-  transition:all .4s;
-}
-.alert.hot { border-color:rgba(0,232,122,.35); background:rgba(0,232,122,.04); }
-.alert.warm { border-color:rgba(255,184,48,.3); background:rgba(255,184,48,.03); }
-.alert-title { font-size:14px; font-weight:900; margin-bottom:3px; }
-.alert-body { font-size:12px; color:var(--text2); line-height:1.5; }
+
 
 /* ── SCORES ── */
 .scores { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 18px 14px; }
@@ -115,11 +104,6 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 .sc-lbl { font-size:10px; color:var(--text2); font-family:'Space Mono',monospace; letter-spacing:1px; margin-bottom:6px; }
 .sc-num { font-family:'Space Mono',monospace; font-size:34px; font-weight:700; line-height:1; }
 .sc-num .mx { font-size:15px; color:var(--text2); }
-.sc-tag {
-  display:inline-block; margin-top:7px;
-  font-size:10px; font-weight:700; letter-spacing:.5px;
-  padding:3px 8px; border-radius:5px;
-}
 
 /* ── TABS ── */
 .tabs { display:flex; gap:8px; padding:0 18px 14px; }
@@ -210,12 +194,6 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
   border:1px solid rgba(0,212,255,.2); border-radius:5px;
 }
 
-/* ── FOOTER ── */
-.footer {
-  text-align:center; padding:18px; font-size:11px;
-  color:var(--text2); line-height:1.7;
-  border-top:1px solid var(--border);
-}
 
 /* ── LOADING OVERLAY ── */
 .loading-bar {
@@ -238,7 +216,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 <!-- HEADER -->
 <div class="hdr">
   <div class="hdr-row">
-    <div class="logo">BOTTOM RADAR v2</div>
+    <div class="logo">BOTTOM RADAR v0.7</div>
     <button class="refresh-btn" id="refreshBtn" onclick="init()">
       <svg id="refreshIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       새로고침
@@ -262,23 +240,15 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
   </div>
 </div>
 
-<!-- ALERT -->
-<div class="alert" id="alertBox">
-  <div class="alert-title" id="alertTitle">📡 분석 중...</div>
-  <div class="alert-body" id="alertBody">데이터를 불러오고 있습니다.</div>
-</div>
-
 <!-- SCORES -->
 <div class="scores">
   <div class="score-card btc">
     <div class="sc-lbl">BTC SIGNALS</div>
     <div class="sc-num" id="btcScoreNum">--<span class="mx">/10</span></div>
-    <div class="sc-tag" id="btcTag">분석 중</div>
   </div>
   <div class="score-card eth">
     <div class="sc-lbl">ETH SIGNALS</div>
     <div class="sc-num" id="ethScoreNum">--<span class="mx">/12</span></div>
-    <div class="sc-tag" id="ethTag">분석 중</div>
   </div>
 </div>
 
@@ -316,11 +286,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 
 
 
-<div class="footer">
-  무료 API: CoinGecko · Binance · Alternative.me<br>
-  ⚠️ 투자 판단 보조용 · 분할매수 권장<br>
-  <span style="opacity:.5">5분마다 자동 갱신</span>
-</div>
+
 
 </div><!-- /wrap -->
 
@@ -586,7 +552,7 @@ function getBtcIndicators() {
       status: loading(D.btcZScore) || sig(D.btcZScore<=-1.0, D.btcZScore<=-0.5),
       value: D.btcZScore!=null ? D.btcZScore.toFixed(2) : null,
       desc: D.btcZScore!=null
-        ? (D.btcZScore<=-1.0?'역사적 저평가 구간 🔴':D.btcZScore<=-0.5?'평균 이하 — 주의 ⚠️':`Z=${D.btcZScore.toFixed(2)} — 정상`)
+        ? `Z=${D.btcZScore.toFixed(2)}`
         : '로딩 중...',
       detail:'365일 가격 평균·표준편차 기반 Z-점수. Z<-1이면 장기 평균 대비 크게 저평가된 바닥권.',
     },
@@ -713,7 +679,7 @@ function getEthIndicators() {
       status: loading(D.ethZScore) || sig(D.ethZScore<=-1.0, D.ethZScore<=-0.5),
       value: D.ethZScore!=null ? D.ethZScore.toFixed(2) : null,
       desc: D.ethZScore!=null
-        ? (D.ethZScore<=-1.0?'역사적 저평가 구간 🔴':D.ethZScore<=-0.5?'평균 이하 — 주의 ⚠️':`Z=${D.ethZScore.toFixed(2)} — 정상`)
+        ? `Z=${D.ethZScore.toFixed(2)}`
         : '로딩 중...',
       detail:'365일 가격 평균·표준편차 기반 Z-점수. Z<-1이면 장기 평균 대비 크게 저평가. ETH는 변동성이 커서 Z값이 극단적으로 갈 수 있음.',
     },
@@ -787,12 +753,6 @@ function renderList(containerId, indicators) {
   return activeCount;
 }
 
-function getTag(active, total) {
-  const r = active/total;
-  if (r >= 0.6) return {txt:'🔴 바닥권 경고', color:'rgba(0,232,122,.12)', textColor:'#00e87a'};
-  if (r >= 0.3) return {txt:'⚠️ 주의 구간',   color:'rgba(255,184,48,.12)', textColor:'#ffb830'};
-  return               {txt:'📊 일반 구간',    color:'rgba(90,122,153,.1)',  textColor:'#5a7a99'};
-}
 
 function renderAll() {
   // prices
@@ -816,40 +776,11 @@ function renderAll() {
   const ethA = renderList('ethList', getEthIndicators());
 
   // scores
-  const btcT = getTag(btcA, 10);
   document.getElementById('btcScoreNum').innerHTML = `${btcA}<span class="mx">/10</span>`;
-  const btcTagEl = document.getElementById('btcTag');
-  btcTagEl.textContent = btcT.txt;
-  btcTagEl.style.background = btcT.color;
-  btcTagEl.style.color = btcT.textColor;
   document.getElementById('btcCount').textContent = `${btcA}/10 활성`;
 
-  const ethT = getTag(ethA, 12);
   document.getElementById('ethScoreNum').innerHTML = `${ethA}<span class="mx">/12</span>`;
-  const ethTagEl = document.getElementById('ethTag');
-  ethTagEl.textContent = ethT.txt;
-  ethTagEl.style.background = ethT.color;
-  ethTagEl.style.color = ethT.textColor;
   document.getElementById('ethCount').textContent = `${ethA}/12 활성`;
-
-  // alert
-  const total = btcA + ethA;
-  const box = document.getElementById('alertBox');
-  const title = document.getElementById('alertTitle');
-  const body = document.getElementById('alertBody');
-  if (total >= 13) {
-    box.className='alert hot';
-    title.textContent='🚨 복합 바닥 신호 강하게 감지!';
-    body.textContent=`BTC ${btcA}/10 + ETH ${ethA}/12 신호 동시 충족. 역사적 바닥권 진입 가능성. 분할 매수 검토.`;
-  } else if (total >= 7) {
-    box.className='alert warm';
-    title.textContent='⚠️ 일부 바닥 신호 감지 중';
-    body.textContent=`BTC ${btcA}/10 + ETH ${ethA}/12 신호 충족. 추가 지표 모니터링 권장.`;
-  } else {
-    box.className='alert';
-    title.textContent='📡 현재 바닥 신호 없음';
-    body.textContent=`BTC ${btcA}/10, ETH ${ethA}/12 신호만 충족. 일반 시장 상황.`;
-  }
 
   // time
   document.getElementById('updatedTime').textContent =

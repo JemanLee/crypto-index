@@ -541,19 +541,18 @@ async function fetchCoinbasePremium() {
   }
 }
 
-async function fetchExchangeRate() {
-  const r = await fetch('https://api.frankfurter.app/latest?from=USD&to=KRW');
+async function fetchKrwData() {
+  // CoinGecko simple/price — KRW 가격 + 환율 계산 (CORS 안전)
+  const r = await fetch(
+    'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd,krw'
+  );
   const d = await r.json();
-  if (d.rates?.KRW) D.usdKrw = d.rates.KRW;
-}
-
-async function fetchUpbit() {
-  const r = await fetch('https://api.upbit.com/v1/ticker?markets=KRW-BTC,KRW-ETH');
-  const list = await r.json();
-  const btcT = list.find(t => t.market === 'KRW-BTC');
-  const ethT = list.find(t => t.market === 'KRW-ETH');
-  if (btcT) D.btcUpbitKrw = btcT.trade_price;
-  if (ethT) D.ethUpbitKrw = ethT.trade_price;
+  if (d.bitcoin?.krw)  D.btcUpbitKrw = d.bitcoin.krw;
+  if (d.ethereum?.krw) D.ethUpbitKrw  = d.ethereum.krw;
+  // BTC KRW÷USD 비율로 환율 계산
+  if (d.bitcoin?.krw && d.bitcoin?.usd) {
+    D.usdKrw = d.bitcoin.krw / d.bitcoin.usd;
+  }
 }
 
 // ═══════════════════════════════════════════════
@@ -961,8 +960,7 @@ async function init() {
     safe(fetchWeeklyKlines),
     safe(fetchOIHistory),
     safe(fetchCoinbasePremium),
-    safe(fetchExchangeRate),
-    safe(fetchUpbit),
+    safe(fetchKrwData),
   ]);
 
   // 김치 프리미엄 계산 (환율 + 업비트 + 글로벌 기준가 필요)

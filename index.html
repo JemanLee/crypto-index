@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="바닥레이더">
-<title>바닥 신호 레이더</title>
+<title>BTC/ETH Signal Radar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+KR:wght@300;400;700;900&display=swap" rel="stylesheet">
 <style>
@@ -241,7 +241,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 <!-- HEADER -->
 <div class="hdr">
   <div class="hdr-row">
-    <div class="logo">BOTTOM RADAR v0.8.5</div>
+    <div class="logo">BOTTOM RADAR v0.8.6</div>
     <button class="refresh-btn" id="refreshBtn" onclick="init()">
       <svg id="refreshIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       새로고침
@@ -574,8 +574,8 @@ async function fetchFuturesData() {
     fetch('https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=ETHUSDT&period=5m&limit=1'),
     fetch('https://fapi.binance.com/futures/data/takerlongshortRatio?symbol=BTCUSDT&period=5m&limit=1'),
     fetch('https://fapi.binance.com/futures/data/takerlongshortRatio?symbol=ETHUSDT&period=5m&limit=1'),
-    fetch('https://fapi.binance.com/v1/ticker/price?symbol=BTCUSDT'),
-    fetch('https://fapi.binance.com/v1/ticker/price?symbol=ETHUSDT'),
+    fetch('https://fapi.binance.com/fapi/v1/ticker/price?symbol=BTCUSDT'),
+    fetch('https://fapi.binance.com/fapi/v1/ticker/price?symbol=ETHUSDT'),
   ]);
   const [d1,d2,d3,d4,d5,d6] = await Promise.all([r1.json(),r2.json(),r3.json(),r4.json(),r5.json(),r6.json()]);
   if (d1[0]?.longShortRatio) D.btcLongShort  = parseFloat(d1[0].longShortRatio);

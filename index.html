@@ -241,7 +241,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 <!-- HEADER -->
 <div class="hdr">
   <div class="hdr-row">
-    <div class="logo">BOTTOM RADAR v0.8.8</div>
+    <div class="logo">BOTTOM RADAR v0.8.9</div>
     <button class="refresh-btn" id="refreshBtn" onclick="init()">
       <svg id="refreshIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       새로고침
@@ -551,8 +551,8 @@ async function fetchKrwData() {
     fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd,krw'),
     // 업비트 실제 USDT/KRW 티커 (CoinGecko 업비트 전용, CORS *)
     fetch('https://api.coingecko.com/api/v3/exchanges/upbit/tickers?coin_ids=tether&include_exchange_logo=false&depth=false'),
-    // 실제 환율 — jsDelivr CDN (CORS 안전, 완전 무료)
-    fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.min.json'),
+    // 실제 환율 — open.er-api.com (구글 환율 기준, CORS *, 무료)
+    fetch('https://open.er-api.com/v6/latest/USD'),
   ]);
 
   const d1 = await r1.json();
@@ -569,7 +569,7 @@ async function fetchKrwData() {
   // 실제 환율
   try {
     const d3 = await r3.json();
-    if (d3.usd?.krw) D.usdKrw = d3.usd.krw;
+    if (d3.rates?.KRW) D.usdKrw = d3.rates.KRW;
   } catch(_) {
     // fallback: BTC 기반 추정
     if (d1.bitcoin?.krw && d1.bitcoin?.usd) D.usdKrw = d1.bitcoin.krw / d1.bitcoin.usd;

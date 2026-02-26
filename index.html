@@ -241,7 +241,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 <!-- HEADER -->
 <div class="hdr">
   <div class="hdr-row">
-    <div class="logo">BOTTOM RADAR v0.8.4</div>
+    <div class="logo">BOTTOM RADAR v0.8.5</div>
     <button class="refresh-btn" id="refreshBtn" onclick="init()">
       <svg id="refreshIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       새로고침
@@ -361,7 +361,7 @@ const D = {
   coinbasePremiumDays:null,
   usdKrw:null, usdtKrw:null,
   btcUpbitKrw:null, ethUpbitKrw:null,
-  kimchiPremium:null,
+  kimchiPremiumBtc:null, kimchiPremiumEth:null,
   btcLongShort:null, ethLongShort:null,
   btcTakerRatio:null, ethTakerRatio:null,
   btcFuturesPrice:null, ethFuturesPrice:null,
@@ -988,17 +988,25 @@ function fmtKrw(n) {
 function renderInfoPanels() {
   const krwStr = D.usdKrw ? Math.round(D.usdKrw).toLocaleString('ko-KR')+'원' : '---';
 
-  // USDT 기준 김치 프리미엄 (두 탭 공용)
-  const kimchiStr = D.kimchiPremium != null
-    ? (D.kimchiPremium>=0?'+':'')+D.kimchiPremium.toFixed(2)+'%'
-    : '---%';
-  const kimchiCls = D.kimchiPremium == null ? 'neu'
-    : D.kimchiPremium > 0 ? 'pos' : D.kimchiPremium < 0 ? 'neg' : 'neu';
+  // BTC 김치 프리미엄
+  const kEl = document.getElementById('infoKimchiBtc');
+  if (kEl) {
+    if (D.kimchiPremiumBtc != null) {
+      const v = D.kimchiPremiumBtc;
+      kEl.textContent = (v>=0?'+':'')+v.toFixed(2)+'%';
+      kEl.className = 'info-val '+(v>0?'pos':v<0?'neg':'neu');
+    } else { kEl.textContent = '---%'; }
+  }
 
-  ['infoKimchiBtc','infoKimchiEth'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.textContent = kimchiStr; el.className = 'info-val '+kimchiCls; }
-  });
+  // ETH 김치 프리미엄
+  const eEl = document.getElementById('infoKimchiEth');
+  if (eEl) {
+    if (D.kimchiPremiumEth != null) {
+      const v = D.kimchiPremiumEth;
+      eEl.textContent = (v>=0?'+':'')+v.toFixed(2)+'%';
+      eEl.className = 'info-val '+(v>0?'pos':v<0?'neg':'neu');
+    } else { eEl.textContent = '---%'; }
+  }
 
   // 환율 (두 탭 공용)
   ['infoUsdKrw','infoUsdKrw2'].forEach(id => {
@@ -1069,9 +1077,13 @@ async function init() {
     safe(fetchFuturesData),
   ]);
 
-  // 김치 프리미엄 계산 — BTC 기준 ((업비트BTC원화 / 환율) / 바이낸스BTC달러 - 1)
+  // 김치 프리미엄 계산 — BTC 기준
   if (D.btcUpbitKrw && D.usdKrw && D.btcPrice) {
-    D.kimchiPremium = ((D.btcUpbitKrw / D.usdKrw) / D.btcPrice - 1) * 100;
+    D.kimchiPremiumBtc = ((D.btcUpbitKrw / D.usdKrw) / D.btcPrice - 1) * 100;
+  }
+  // ETH 기준
+  if (D.ethUpbitKrw && D.usdKrw && D.ethPrice) {
+    D.kimchiPremiumEth = ((D.ethUpbitKrw / D.usdKrw) / D.ethPrice - 1) * 100;
   }
 
   // 선물 베이시스 계산 (현물가 필요, 병렬 fetch 완료 후)

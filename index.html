@@ -241,7 +241,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 <!-- HEADER -->
 <div class="hdr">
   <div class="hdr-row">
-    <div class="logo">BOTTOM RADAR v0.8.6</div>
+    <div class="logo">BOTTOM RADAR v0.8.7</div>
     <button class="refresh-btn" id="refreshBtn" onclick="init()">
       <svg id="refreshIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       새로고침
@@ -294,7 +294,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
       <span class="info-val neu" id="infoUsdKrw">---</span>
     </div>
     <div class="info-row">
-      <span class="info-label">김치 프리미엄 (BTC)</span>
+      <span class="info-label">김치 프리미엄 (USDT)</span>
       <span class="info-val neu" id="infoKimchiBtc">---%</span>
     </div>
   </div>
@@ -318,7 +318,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
       <span class="info-val neu" id="infoUsdKrw2">---</span>
     </div>
     <div class="info-row">
-      <span class="info-label">김치 프리미엄 (BTC)</span>
+      <span class="info-label">김치 프리미엄 (USDT)</span>
       <span class="info-val neu" id="infoKimchiEth">---%</span>
     </div>
   </div>
@@ -1077,13 +1077,11 @@ async function init() {
     safe(fetchFuturesData),
   ]);
 
-  // 김치 프리미엄 계산 — BTC 기준
-  if (D.btcUpbitKrw && D.usdKrw && D.btcPrice) {
-    D.kimchiPremiumBtc = ((D.btcUpbitKrw / D.usdKrw) / D.btcPrice - 1) * 100;
-  }
-  // ETH 기준
-  if (D.ethUpbitKrw && D.usdKrw && D.ethPrice) {
-    D.kimchiPremiumEth = ((D.ethUpbitKrw / D.usdKrw) / D.ethPrice - 1) * 100;
+  // 김치 프리미엄 계산 — 업비트 USDT 가격 ÷ 실제 환율
+  if (D.usdtKrw && D.usdKrw) {
+    const kp = (D.usdtKrw / D.usdKrw - 1) * 100;
+    D.kimchiPremiumBtc = kp;
+    D.kimchiPremiumEth = kp;
   }
 
   // 선물 베이시스 계산 (현물가 필요, 병렬 fetch 완료 후)

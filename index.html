@@ -362,6 +362,10 @@ const D = {
   usdKrw:null, usdtKrw:null,
   btcUpbitKrw:null, ethUpbitKrw:null,
   kimchiPremium:null,
+  btcLongShort:null, ethLongShort:null,
+  btcTakerRatio:null, ethTakerRatio:null,
+  btcFuturesPrice:null, ethFuturesPrice:null,
+  btcBasis:null, ethBasis:null,
 };
 
 // ═══════════════════════════════════════════════
@@ -564,6 +568,24 @@ async function fetchKrwData() {
   }
 }
 
+async function fetchFuturesData() {
+  const [r1,r2,r3,r4,r5,r6] = await Promise.all([
+    fetch('https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=BTCUSDT&period=5m&limit=1'),
+    fetch('https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=ETHUSDT&period=5m&limit=1'),
+    fetch('https://fapi.binance.com/futures/data/takerlongshortRatio?symbol=BTCUSDT&period=5m&limit=1'),
+    fetch('https://fapi.binance.com/futures/data/takerlongshortRatio?symbol=ETHUSDT&period=5m&limit=1'),
+    fetch('https://fapi.binance.com/v1/ticker/price?symbol=BTCUSDT'),
+    fetch('https://fapi.binance.com/v1/ticker/price?symbol=ETHUSDT'),
+  ]);
+  const [d1,d2,d3,d4,d5,d6] = await Promise.all([r1.json(),r2.json(),r3.json(),r4.json(),r5.json(),r6.json()]);
+  if (d1[0]?.longShortRatio) D.btcLongShort  = parseFloat(d1[0].longShortRatio);
+  if (d2[0]?.longShortRatio) D.ethLongShort  = parseFloat(d2[0].longShortRatio);
+  if (d3[0]?.buySellRatio)   D.btcTakerRatio = parseFloat(d3[0].buySellRatio);
+  if (d4[0]?.buySellRatio)   D.ethTakerRatio = parseFloat(d4[0].buySellRatio);
+  if (d5.price) D.btcFuturesPrice = parseFloat(d5.price);
+  if (d6.price) D.ethFuturesPrice = parseFloat(d6.price);
+}
+
 // ═══════════════════════════════════════════════
 //  INDICATORS
 // ═══════════════════════════════════════════════
@@ -711,6 +733,39 @@ function getBtcIndicators() {
         : '로딩 중...',
       detail:'코인베이스(미국 현물) vs 바이낸스(글로벌) BTC 가격 차이. 음수=미국이 싸게 팔고 있는 것으로 공포 극단의 바닥 신호. 며칠 연속 음수 유지 시 신뢰도 상승.',
     },
+    {
+      name:'롱숏 비율 (BTC)',
+      stars:'★★★★☆',
+      thr:'< 0.8 = 숏 극단 → 숏스퀴즈 임박',
+      status: loading(D.btcLongShort) || sig(D.btcLongShort<0.8, D.btcLongShort<1.0),
+      value: D.btcLongShort!=null ? D.btcLongShort.toFixed(2) : null,
+      desc: D.btcLongShort!=null
+        ? (D.btcLongShort<0.8?`${D.btcLongShort.toFixed(2)} — 숏 극단 🔴`:D.btcLongShort<1.0?`${D.btcLongShort.toFixed(2)} — 숏 우세 ⚠️`:`${D.btcLongShort.toFixed(2)} — 롱 우세`)
+        : '로딩 중...',
+      detail:'바이낸스 선물 롱/숏 포지션 비율. 1.0 이하면 숏이 우세. 0.8 이하 극단적 숏 과잉은 숏스퀴즈(강제 숏청산 → 급등) 가능성을 높임.',
+    },
+    {
+      name:'테이커 매수/매도 비율 (BTC)',
+      stars:'★★★★☆',
+      thr:'< 0.8 = 시장가 매도 극단',
+      status: loading(D.btcTakerRatio) || sig(D.btcTakerRatio<0.8, D.btcTakerRatio<0.9),
+      value: D.btcTakerRatio!=null ? D.btcTakerRatio.toFixed(2) : null,
+      desc: D.btcTakerRatio!=null
+        ? (D.btcTakerRatio<0.8?`${D.btcTakerRatio.toFixed(2)} — 공황 매도 극단 🔴`:D.btcTakerRatio<0.9?`${D.btcTakerRatio.toFixed(2)} — 매도 우세 ⚠️`:`${D.btcTakerRatio.toFixed(2)} — 정상`)
+        : '로딩 중...',
+      detail:'시장가(즉시 체결) 매수 vs 매도 비율. 1.0이면 균형. 0.8 이하면 시장참여자들이 급하게 던지는 공황 매도 상태. 극단 직후 반등 가능성 상승.',
+    },
+    {
+      name:'선물 베이시스 (BTC)',
+      stars:'★★★☆☆',
+      thr:'< -0.1% = 백워데이션 (극단 공포)',
+      status: loading(D.btcBasis) || sig(D.btcBasis!=null&&D.btcBasis<-0.1, D.btcBasis!=null&&D.btcBasis<0),
+      value: D.btcBasis!=null ? `${D.btcBasis>=0?'+':''}${D.btcBasis.toFixed(3)}%` : null,
+      desc: D.btcBasis!=null
+        ? (D.btcBasis<-0.1?`${D.btcBasis.toFixed(3)}% — 백워데이션 🔴`:D.btcBasis<0?`${D.btcBasis.toFixed(3)}% — 음수 베이시스 ⚠️`:`${D.btcBasis.toFixed(3)}% — 콘탱고 정상`)
+        : '로딩 중...',
+      detail:'선물가격 - 현물가격 차이(%). 정상은 콘탱고(양수). 음수(백워데이션)이면 선물이 현물보다 싸다는 뜻으로 극단적 공포·매도 압력을 의미. 역사적 바닥권에서 자주 출현.',
+    },
   ];
 }
 
@@ -838,6 +893,55 @@ function getEthIndicators() {
         : '로딩 중...',
       detail:'ETH 미결제약정 7일 변화율. ETH는 변동성이 더 커서 급락 시 OI 감소폭이 BTC보다 큼. 대규모 청산 후 바닥 형성 패턴.',
     },
+    {
+      name:'롱숏 비율 (ETH)',
+      stars:'★★★★☆',
+      thr:'< 0.8 = 숏 극단 → 숏스퀴즈 임박',
+      status: loading(D.ethLongShort) || sig(D.ethLongShort<0.8, D.ethLongShort<1.0),
+      value: D.ethLongShort!=null ? D.ethLongShort.toFixed(2) : null,
+      desc: D.ethLongShort!=null
+        ? (D.ethLongShort<0.8?`${D.ethLongShort.toFixed(2)} — 숏 극단 🔴`:D.ethLongShort<1.0?`${D.ethLongShort.toFixed(2)} — 숏 우세 ⚠️`:`${D.ethLongShort.toFixed(2)} — 롱 우세`)
+        : '로딩 중...',
+      detail:'바이낸스 선물 ETH 롱/숏 비율. ETH는 변동성이 커서 숏 극단이 더 자주 발생. 0.8 이하면 숏스퀴즈(강제 숏청산 → 급등) 가능성 높음.',
+    },
+    {
+      name:'테이커 매수/매도 비율 (ETH)',
+      stars:'★★★★☆',
+      thr:'< 0.8 = 시장가 매도 극단',
+      status: loading(D.ethTakerRatio) || sig(D.ethTakerRatio<0.8, D.ethTakerRatio<0.9),
+      value: D.ethTakerRatio!=null ? D.ethTakerRatio.toFixed(2) : null,
+      desc: D.ethTakerRatio!=null
+        ? (D.ethTakerRatio<0.8?`${D.ethTakerRatio.toFixed(2)} — 공황 매도 극단 🔴`:D.ethTakerRatio<0.9?`${D.ethTakerRatio.toFixed(2)} — 매도 우세 ⚠️`:`${D.ethTakerRatio.toFixed(2)} — 정상`)
+        : '로딩 중...',
+      detail:'ETH 선물 시장가 매수 vs 매도 비율. ETH는 변동성이 커서 공황 매도 시 비율이 더 극단적으로 떨어질 수 있음. 극단 직후 반등 확률 높음.',
+    },
+    {
+      name:'선물 베이시스 (ETH)',
+      stars:'★★★☆☆',
+      thr:'< -0.1% = 백워데이션 (극단 공포)',
+      status: loading(D.ethBasis) || sig(D.ethBasis!=null&&D.ethBasis<-0.1, D.ethBasis!=null&&D.ethBasis<0),
+      value: D.ethBasis!=null ? `${D.ethBasis>=0?'+':''}${D.ethBasis.toFixed(3)}%` : null,
+      desc: D.ethBasis!=null
+        ? (D.ethBasis<-0.1?`${D.ethBasis.toFixed(3)}% — 백워데이션 🔴`:D.ethBasis<0?`${D.ethBasis.toFixed(3)}% — 음수 베이시스 ⚠️`:`${D.ethBasis.toFixed(3)}% — 콘탱고 정상`)
+        : '로딩 중...',
+      detail:'ETH 선물-현물 가격 차이(%). ETH는 백워데이션 진입 빈도가 BTC보다 높아 이 신호의 신뢰도가 상대적으로 높음. 극단 공포 구간에서 자주 나타남.',
+    },
+    {
+      name:'BTC 도미넌스',
+      stars:'★★★☆☆',
+      thr:'> 62% = 알트 극단 약세 (ETH 바닥 가능)',
+      status: loading(D.btcMcap&&D.totalMcap) || sig((D.btcMcap/D.totalMcap)*100>=62, (D.btcMcap/D.totalMcap)*100>=57),
+      value: (D.btcMcap&&D.totalMcap) ? ((D.btcMcap/D.totalMcap)*100).toFixed(1)+'%' : null,
+      desc: (D.btcMcap&&D.totalMcap)
+        ? (() => {
+            const dom = (D.btcMcap/D.totalMcap)*100;
+            if (dom>=62) return `BTC 도미넌스 ${dom.toFixed(1)}% — 알트 극단 약세 🔴`;
+            if (dom>=57) return `BTC 도미넌스 ${dom.toFixed(1)}% — 알트 약세 ⚠️`;
+            return `BTC 도미넌스 ${dom.toFixed(1)}% — 알트 안정`;
+          })()
+        : '로딩 중...',
+      detail:'BTC 시총이 전체 암호화폐 시총에서 차지하는 비율. 60%+ 이상이면 자금이 BTC로만 쏠리는 극단적 위험 회피 상태로 알트(ETH 포함)는 극단 저평가. 알트 바닥의 강력한 선행 지표.',
+    },
   ];
 }
 
@@ -934,11 +1038,11 @@ function renderAll() {
   const ethA = renderList('ethList', getEthIndicators());
 
   // scores
-  document.getElementById('btcScoreNum').innerHTML = `${btcA}<span class="mx">/11</span>`;
-  document.getElementById('btcCount').textContent = `${btcA}/11 활성`;
+  document.getElementById('btcScoreNum').innerHTML = `${btcA}<span class="mx">/14</span>`;
+  document.getElementById('btcCount').textContent = `${btcA}/14 활성`;
 
-  document.getElementById('ethScoreNum').innerHTML = `${ethA}<span class="mx">/12</span>`;
-  document.getElementById('ethCount').textContent = `${ethA}/12 활성`;
+  document.getElementById('ethScoreNum').innerHTML = `${ethA}<span class="mx">/16</span>`;
+  document.getElementById('ethCount').textContent = `${ethA}/16 활성`;
 
   // time
   document.getElementById('updatedTime').textContent =
@@ -962,12 +1066,17 @@ async function init() {
     safe(fetchOIHistory),
     safe(fetchCoinbasePremium),
     safe(fetchKrwData),
+    safe(fetchFuturesData),
   ]);
 
   // 김치 프리미엄 계산 — USDT 기준 (USDT KRW ÷ 실제 환율 - 1)
   if (D.usdtKrw && D.usdKrw) {
     D.kimchiPremium = (D.usdtKrw / D.usdKrw - 1) * 100;
   }
+
+  // 선물 베이시스 계산 (현물가 필요, 병렬 fetch 완료 후)
+  if (D.btcFuturesPrice && D.btcPrice) D.btcBasis = (D.btcFuturesPrice - D.btcPrice) / D.btcPrice * 100;
+  if (D.ethFuturesPrice && D.ethPrice) D.ethBasis = (D.ethFuturesPrice - D.ethPrice) / D.ethPrice * 100;
 
   renderAll();
   document.getElementById('loadingBar').classList.remove('show');

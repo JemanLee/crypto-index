@@ -195,6 +195,31 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 }
 
 
+/* ── INFO SECTION ── */
+.info-sec {
+  margin:0 18px 14px;
+  background:rgba(0,212,255,.04);
+  border:1px solid rgba(0,212,255,.12);
+  border-radius:14px; padding:11px 14px;
+}
+.info-sec-title {
+  font-size:9px; font-weight:700; letter-spacing:1.5px;
+  color:var(--accent); text-transform:uppercase; margin-bottom:8px;
+}
+.info-row {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:4px 0; border-bottom:1px solid rgba(255,255,255,.04);
+}
+.info-row:last-child { border-bottom:none; }
+.info-label { font-size:11px; color:var(--text2); }
+.info-val { font-family:'Space Mono',monospace; font-size:11px; font-weight:700; }
+.info-val.pos { color:var(--green); }
+.info-val.neg { color:var(--red); }
+.info-val.neu { color:var(--text2); }
+
+/* ── UPBIT PRICE ── */
+.p-upbit { font-family:'Space Mono',monospace; font-size:10px; color:var(--text2); margin-top:1px; }
+
 /* ── LOADING OVERLAY ── */
 .loading-bar {
   position:fixed; top:0; left:0; right:0; height:2px; z-index:99;
@@ -232,11 +257,13 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
     <div class="p-sym">BTC / USD</div>
     <div class="p-price" id="btcPrice">---</div>
     <div class="p-chg" id="btcChg">--</div>
+    <div class="p-upbit" id="btcUpbit">₩ ---</div>
   </div>
   <div class="price-card eth">
     <div class="p-sym">ETH / USD</div>
     <div class="p-price" id="ethPrice">---</div>
     <div class="p-chg" id="ethChg">--</div>
+    <div class="p-upbit" id="ethUpbit">₩ ---</div>
   </div>
 </div>
 
@@ -244,7 +271,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 <div class="scores">
   <div class="score-card btc">
     <div class="sc-lbl">BTC SIGNALS</div>
-    <div class="sc-num" id="btcScoreNum">--<span class="mx">/10</span></div>
+    <div class="sc-num" id="btcScoreNum">--<span class="mx">/11</span></div>
   </div>
   <div class="score-card eth">
     <div class="sc-lbl">ETH SIGNALS</div>
@@ -260,12 +287,23 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 
 <!-- BTC PANE -->
 <div class="pane on" id="pane-btc">
+  <div class="info-sec" id="btcInfoSec">
+    <div class="info-sec-title">📊 시장 정보</div>
+    <div class="info-row">
+      <span class="info-label">환율 (USD/KRW)</span>
+      <span class="info-val neu" id="infoUsdKrw">---</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">김치 프리미엄 (BTC)</span>
+      <span class="info-val neu" id="infoKimchiBtc">---%</span>
+    </div>
+  </div>
   <div class="sec">
     <div class="sec-hdr">
       <span style="font-size:15px">🟠</span>
       <span class="sec-title">BTC 바닥 지표</span>
       <span class="sec-badge badge-live">● LIVE</span>
-      <span class="sec-badge badge-count" id="btcCount">--/10</span>
+      <span class="sec-badge badge-count" id="btcCount">--/11</span>
     </div>
     <div class="ind-list" id="btcList"></div>
   </div>
@@ -273,6 +311,17 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 
 <!-- ETH PANE -->
 <div class="pane" id="pane-eth">
+  <div class="info-sec" id="ethInfoSec">
+    <div class="info-sec-title">📊 시장 정보</div>
+    <div class="info-row">
+      <span class="info-label">환율 (USD/KRW)</span>
+      <span class="info-val neu" id="infoUsdKrw2">---</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">김치 프리미엄 (ETH)</span>
+      <span class="info-val neu" id="infoKimchiEth">---%</span>
+    </div>
+  </div>
   <div class="sec">
     <div class="sec-hdr">
       <span style="font-size:15px">🔵</span>
@@ -308,6 +357,11 @@ const D = {
   btcOIChange:null, ethOIChange:null,
   fearGreed:null, fearGreedLabel:null,
   stableCap:null,
+  coinbasePremium:null,
+  coinbasePremiumDays:null,
+  usdKrw:null,
+  btcUpbitKrw:null, ethUpbitKrw:null,
+  kimchiPremiumBtc:null, kimchiPremiumEth:null,
 };
 
 // ═══════════════════════════════════════════════
@@ -464,6 +518,44 @@ async function fetchOIHistory() {
   }
 }
 
+async function fetchCoinbasePremium() {
+  const [rc, rb] = await Promise.all([
+    fetch('https://api.coinbase.com/v2/prices/BTC-USD/spot'),
+    fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT'),
+  ]);
+  const dc = await rc.json();
+  const db = await rb.json();
+  const cbPrice = parseFloat(dc.data?.amount);
+  const bnPrice = parseFloat(db.price);
+  if (cbPrice && bnPrice) {
+    D.coinbasePremium = (cbPrice - bnPrice) / bnPrice * 100;
+    // localStorage로 부호 지속일 추적
+    const sign = D.coinbasePremium >= 0 ? 1 : -1;
+    const stored = JSON.parse(localStorage.getItem('cbPremiumTrack') || '{}');
+    if (!stored.sign || stored.sign !== sign) {
+      stored.sign = sign;
+      stored.startTs = Date.now();
+      localStorage.setItem('cbPremiumTrack', JSON.stringify(stored));
+    }
+    D.coinbasePremiumDays = Math.max(0, Math.floor((Date.now() - stored.startTs) / (1000*60*60*24)));
+  }
+}
+
+async function fetchExchangeRate() {
+  const r = await fetch('https://api.frankfurter.app/latest?from=USD&to=KRW');
+  const d = await r.json();
+  if (d.rates?.KRW) D.usdKrw = d.rates.KRW;
+}
+
+async function fetchUpbit() {
+  const r = await fetch('https://api.upbit.com/v1/ticker?markets=KRW-BTC,KRW-ETH');
+  const list = await r.json();
+  const btcT = list.find(t => t.market === 'KRW-BTC');
+  const ethT = list.find(t => t.market === 'KRW-ETH');
+  if (btcT) D.btcUpbitKrw = btcT.trade_price;
+  if (ethT) D.ethUpbitKrw = ethT.trade_price;
+}
+
 // ═══════════════════════════════════════════════
 //  INDICATORS
 // ═══════════════════════════════════════════════
@@ -590,6 +682,26 @@ function getBtcIndicators() {
         ? (D.btcOIChange<=-15?'대규모 청산 발생 🔴':D.btcOIChange<=-8?'레버리지 축소 ⚠️':`OI ${D.btcOIChange.toFixed(1)}% 변화`)
         : '로딩 중...',
       detail:'미결제약정(Open Interest) 7일 변화율. OI가 급격히 감소하면 대규모 강제 청산이 발생한 것. 과도한 레버리지가 해소된 이후 반등 가능성이 높아짐.',
+    },
+    {
+      name:'코인베이스 프리미엄',
+      stars:'★★★★☆',
+      thr:'음수 지속 = 미국 패닉셀 신호',
+      status: loading(D.coinbasePremium) || sig(D.coinbasePremium<=-0.15, D.coinbasePremium<=-0.05),
+      value: D.coinbasePremium!=null
+        ? `${D.coinbasePremium>=0?'+':''}${D.coinbasePremium.toFixed(3)}%`
+        : null,
+      desc: D.coinbasePremium!=null
+        ? (() => {
+            const sign = D.coinbasePremium >= 0 ? '양수' : '음수';
+            const days = D.coinbasePremiumDays;
+            const dayStr = days===0 ? '오늘 전환' : `${sign} ${days}일째`;
+            if (D.coinbasePremium <= -0.15) return `${dayStr} — 미국 패닉셀 극단 🔴`;
+            if (D.coinbasePremium <= -0.05) return `${dayStr} — 음수 프리미엄 ⚠️`;
+            return `${dayStr} — 정상`;
+          })()
+        : '로딩 중...',
+      detail:'코인베이스(미국 현물) vs 바이낸스(글로벌) BTC 가격 차이. 음수=미국이 싸게 팔고 있는 것으로 공포 극단의 바닥 신호. 며칠 연속 음수 유지 시 신뢰도 상승.',
     },
   ];
 }
@@ -754,6 +866,43 @@ function renderList(containerId, indicators) {
 }
 
 
+function fmtKrw(n) {
+  if (n == null) return '---';
+  if (n >= 1e8) return (n/1e8).toFixed(2)+'억';
+  if (n >= 1e4) return Math.round(n).toLocaleString('ko-KR');
+  return n.toFixed(0);
+}
+
+function renderInfoPanels() {
+  const krwStr = D.usdKrw ? Math.round(D.usdKrw).toLocaleString('ko-KR')+'원' : '---';
+
+  // BTC 김치 프리미엄
+  const kEl = document.getElementById('infoKimchiBtc');
+  if (kEl) {
+    if (D.kimchiPremiumBtc != null) {
+      const v = D.kimchiPremiumBtc;
+      kEl.textContent = (v>=0?'+':'')+v.toFixed(2)+'%';
+      kEl.className = 'info-val '+(v>0?'pos':v<0?'neg':'neu');
+    } else { kEl.textContent = '---%'; }
+  }
+
+  // ETH 김치 프리미엄
+  const eEl = document.getElementById('infoKimchiEth');
+  if (eEl) {
+    if (D.kimchiPremiumEth != null) {
+      const v = D.kimchiPremiumEth;
+      eEl.textContent = (v>=0?'+':'')+v.toFixed(2)+'%';
+      eEl.className = 'info-val '+(v>0?'pos':v<0?'neg':'neu');
+    } else { eEl.textContent = '---%'; }
+  }
+
+  // 환율 (두 탭 공용)
+  ['infoUsdKrw','infoUsdKrw2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = krwStr;
+  });
+}
+
 function renderAll() {
   // prices
   if (D.btcPrice) {
@@ -771,13 +920,22 @@ function renderAll() {
     el.className = 'p-chg '+(c>=0?'up':'dn');
   }
 
+  // 업비트 가격
+  const btcUpbitEl = document.getElementById('btcUpbit');
+  if (btcUpbitEl) btcUpbitEl.textContent = D.btcUpbitKrw ? '₩ '+fmtKrw(D.btcUpbitKrw) : '₩ ---';
+  const ethUpbitEl = document.getElementById('ethUpbit');
+  if (ethUpbitEl) ethUpbitEl.textContent = D.ethUpbitKrw ? '₩ '+fmtKrw(D.ethUpbitKrw) : '₩ ---';
+
+  // 김치 프리미엄 info
+  renderInfoPanels();
+
   // indicators
   const btcA = renderList('btcList', getBtcIndicators());
   const ethA = renderList('ethList', getEthIndicators());
 
   // scores
-  document.getElementById('btcScoreNum').innerHTML = `${btcA}<span class="mx">/10</span>`;
-  document.getElementById('btcCount').textContent = `${btcA}/10 활성`;
+  document.getElementById('btcScoreNum').innerHTML = `${btcA}<span class="mx">/11</span>`;
+  document.getElementById('btcCount').textContent = `${btcA}/11 활성`;
 
   document.getElementById('ethScoreNum').innerHTML = `${ethA}<span class="mx">/12</span>`;
   document.getElementById('ethCount').textContent = `${ethA}/12 활성`;
@@ -802,7 +960,18 @@ async function init() {
     safe(fetchKlines),
     safe(fetchWeeklyKlines),
     safe(fetchOIHistory),
+    safe(fetchCoinbasePremium),
+    safe(fetchExchangeRate),
+    safe(fetchUpbit),
   ]);
+
+  // 김치 프리미엄 계산 (환율 + 업비트 + 글로벌 기준가 필요)
+  if (D.btcUpbitKrw && D.usdKrw && D.btcPrice) {
+    D.kimchiPremiumBtc = ((D.btcUpbitKrw / D.usdKrw) / D.btcPrice - 1) * 100;
+  }
+  if (D.ethUpbitKrw && D.usdKrw && D.ethPrice) {
+    D.kimchiPremiumEth = ((D.ethUpbitKrw / D.usdKrw) / D.ethPrice - 1) * 100;
+  }
 
   renderAll();
   document.getElementById('loadingBar').classList.remove('show');

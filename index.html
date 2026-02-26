@@ -241,7 +241,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 <!-- HEADER -->
 <div class="hdr">
   <div class="hdr-row">
-    <div class="logo">BOTTOM RADAR v0.8.7</div>
+    <div class="logo">BOTTOM RADAR v0.8.8</div>
     <button class="refresh-btn" id="refreshBtn" onclick="init()">
       <svg id="refreshIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       새로고침
@@ -546,25 +546,33 @@ async function fetchCoinbasePremium() {
 }
 
 async function fetchKrwData() {
-  // 1. CoinGecko: BTC·ETH·USDT KRW 가격
-  const r = await fetch(
-    'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,tether&vs_currencies=usd,krw'
-  );
-  const d = await r.json();
-  if (d.bitcoin?.krw)  D.btcUpbitKrw = d.bitcoin.krw;
-  if (d.ethereum?.krw) D.ethUpbitKrw  = d.ethereum.krw;
-  if (d.tether?.krw)   D.usdtKrw      = d.tether.krw;
+  // 1. CoinGecko simple/price: BTC·ETH KRW 가격 (업비트 소스)
+  const [r1, r2, r3] = await Promise.all([
+    fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd,krw'),
+    // 업비트 실제 USDT/KRW 티커 (CoinGecko 업비트 전용, CORS *)
+    fetch('https://api.coingecko.com/api/v3/exchanges/upbit/tickers?coin_ids=tether&include_exchange_logo=false&depth=false'),
+    // 실제 환율 — jsDelivr CDN (CORS 안전, 완전 무료)
+    fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.min.json'),
+  ]);
 
-  // 2. 실제 환율 — jsDelivr CDN (CORS 안전, 완전 무료)
+  const d1 = await r1.json();
+  if (d1.bitcoin?.krw)  D.btcUpbitKrw = d1.bitcoin.krw;
+  if (d1.ethereum?.krw) D.ethUpbitKrw  = d1.ethereum.krw;
+
+  // 업비트 USDT/KRW 실제 가격
   try {
-    const re = await fetch(
-      'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/usd.min.json'
-    );
-    const de = await re.json();
-    if (de.usd?.krw) D.usdKrw = de.usd.krw;
+    const d2 = await r2.json();
+    const ticker = d2.tickers?.find(t => t.target === 'KRW');
+    if (ticker?.last) D.usdtKrw = ticker.last;
+  } catch(_) {}
+
+  // 실제 환율
+  try {
+    const d3 = await r3.json();
+    if (d3.usd?.krw) D.usdKrw = d3.usd.krw;
   } catch(_) {
     // fallback: BTC 기반 추정
-    if (d.bitcoin?.krw && d.bitcoin?.usd) D.usdKrw = d.bitcoin.krw / d.bitcoin.usd;
+    if (d1.bitcoin?.krw && d1.bitcoin?.usd) D.usdKrw = d1.bitcoin.krw / d1.bitcoin.usd;
   }
 }
 

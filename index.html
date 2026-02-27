@@ -232,9 +232,9 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
   color:var(--green); text-transform:uppercase; margin-bottom:10px;
 }
 .balance-grid {
-  display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;
+  display:flex; flex-direction:column; gap:8px;
 }
-.balance-item { display:flex; flex-direction:column; gap:3px; }
+.balance-item { display:flex; flex-direction:row; justify-content:space-between; align-items:center; }
 .balance-label { font-size:9px; color:var(--text2); letter-spacing:.5px; }
 .balance-value {
   font-family:'Space Mono',monospace; font-size:13px; font-weight:700;
@@ -242,6 +242,59 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 .balance-value.pos { color:var(--green); }
 .balance-value.neg { color:var(--red); }
 .balance-value.neu { color:var(--text); }
+
+/* ── STOCK PANEL ── */
+.stock-panel {
+  margin:0 18px 14px;
+  background:rgba(255,184,48,.04);
+  border:1px solid rgba(255,184,48,.14);
+  border-radius:14px; padding:12px 16px;
+}
+.stock-title {
+  font-size:9px; font-weight:700; letter-spacing:1.5px;
+  color:var(--yellow); text-transform:uppercase; margin-bottom:10px;
+}
+.stock-cards { display:flex; flex-direction:column; gap:10px; }
+.stock-card {
+  background:rgba(255,255,255,.03);
+  border:1px solid var(--border);
+  border-radius:10px; padding:10px 12px;
+}
+.stock-card-header {
+  display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;
+}
+.stock-sym { font-family:'Space Mono',monospace; font-size:11px; font-weight:700; color:var(--yellow); }
+.stock-state-badge {
+  font-size:8px; font-weight:700; letter-spacing:1px; padding:2px 6px;
+  border-radius:4px; text-transform:uppercase;
+}
+.stock-state-badge.PRE  { background:rgba(0,212,255,.15); color:var(--accent); }
+.stock-state-badge.REG  { background:rgba(0,232,122,.15); color:var(--green); }
+.stock-state-badge.POST { background:rgba(255,184,48,.15); color:var(--yellow); }
+.stock-state-badge.CLOSED { background:rgba(90,122,153,.15); color:var(--text2); }
+.stock-current {
+  display:flex; align-items:baseline; gap:6px; margin-bottom:6px;
+}
+.stock-cur-price { font-family:'Space Mono',monospace; font-size:18px; font-weight:700; color:var(--text); }
+.stock-cur-chg { font-family:'Space Mono',monospace; font-size:11px; font-weight:700; }
+.stock-cur-chg.pos { color:var(--green); }
+.stock-cur-chg.neg { color:var(--red); }
+.stock-sessions {
+  display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px;
+}
+.stock-sess {
+  display:flex; flex-direction:column; gap:2px;
+  padding:5px 6px; border-radius:6px;
+  background:rgba(255,255,255,.02); border:1px solid var(--border);
+}
+.stock-sess.active-sess {
+  border-color:var(--accent); background:rgba(0,212,255,.06);
+}
+.stock-sess-lbl { font-size:8px; color:var(--text2); letter-spacing:.5px; text-transform:uppercase; }
+.stock-sess-price { font-family:'Space Mono',monospace; font-size:11px; font-weight:700; color:var(--text); }
+.stock-sess-chg { font-family:'Space Mono',monospace; font-size:9px; }
+.stock-sess-chg.pos { color:var(--green); }
+.stock-sess-chg.neg { color:var(--red); }
 
 /* ── LOADING OVERLAY ── */
 .loading-bar {
@@ -264,7 +317,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 <!-- HEADER -->
 <div class="hdr">
   <div class="hdr-row">
-    <div class="logo">BOTTOM RADAR v0.9.0</div>
+    <div class="logo">BOTTOM RADAR v0.9.1</div>
     <button class="refresh-btn" id="refreshBtn" onclick="init()">
       <svg id="refreshIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       새로고침
@@ -289,6 +342,69 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
     <div class="balance-item">
       <span class="balance-label">Target</span>
       <span class="balance-value neu" id="balTarget">---</span>
+    </div>
+  </div>
+</div>
+
+<!-- STOCK PANEL -->
+<div class="stock-panel">
+  <div class="stock-title">◈ ETF Prices</div>
+  <div class="stock-cards">
+    <!-- ETHU -->
+    <div class="stock-card" id="stockCard-ETHU">
+      <div class="stock-card-header">
+        <span class="stock-sym">ETHU</span>
+        <span class="stock-state-badge CLOSED" id="stockState-ETHU">CLOSED</span>
+      </div>
+      <div class="stock-current">
+        <span class="stock-cur-price" id="stockCur-ETHU">---</span>
+        <span class="stock-cur-chg" id="stockCurChg-ETHU"></span>
+      </div>
+      <div class="stock-sessions">
+        <div class="stock-sess" id="stockSess-ETHU-pre">
+          <span class="stock-sess-lbl">Pre-Market</span>
+          <span class="stock-sess-price" id="stockPre-ETHU">---</span>
+          <span class="stock-sess-chg" id="stockPreChg-ETHU"></span>
+        </div>
+        <div class="stock-sess" id="stockSess-ETHU-reg">
+          <span class="stock-sess-lbl">Regular</span>
+          <span class="stock-sess-price" id="stockReg-ETHU">---</span>
+          <span class="stock-sess-chg" id="stockRegChg-ETHU"></span>
+        </div>
+        <div class="stock-sess" id="stockSess-ETHU-post">
+          <span class="stock-sess-lbl">After-Market</span>
+          <span class="stock-sess-price" id="stockPost-ETHU">---</span>
+          <span class="stock-sess-chg" id="stockPostChg-ETHU"></span>
+        </div>
+      </div>
+    </div>
+    <!-- BMNU -->
+    <div class="stock-card" id="stockCard-BMNU">
+      <div class="stock-card-header">
+        <span class="stock-sym">BMNU</span>
+        <span class="stock-state-badge CLOSED" id="stockState-BMNU">CLOSED</span>
+      </div>
+      <div class="stock-current">
+        <span class="stock-cur-price" id="stockCur-BMNU">---</span>
+        <span class="stock-cur-chg" id="stockCurChg-BMNU"></span>
+      </div>
+      <div class="stock-sessions">
+        <div class="stock-sess" id="stockSess-BMNU-pre">
+          <span class="stock-sess-lbl">Pre-Market</span>
+          <span class="stock-sess-price" id="stockPre-BMNU">---</span>
+          <span class="stock-sess-chg" id="stockPreChg-BMNU"></span>
+        </div>
+        <div class="stock-sess" id="stockSess-BMNU-reg">
+          <span class="stock-sess-lbl">Regular</span>
+          <span class="stock-sess-price" id="stockReg-BMNU">---</span>
+          <span class="stock-sess-chg" id="stockRegChg-BMNU"></span>
+        </div>
+        <div class="stock-sess" id="stockSess-BMNU-post">
+          <span class="stock-sess-lbl">After-Market</span>
+          <span class="stock-sess-price" id="stockPost-BMNU">---</span>
+          <span class="stock-sess-chg" id="stockPostChg-BMNU"></span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -405,6 +521,10 @@ const D = {
   btcUpbitKrw:null, ethUpbitKrw:null,
   kimchiPremiumBtc:null, kimchiPremiumEth:null,
   balProfit:null, balBalance:null, balTarget:null,
+  stocks: {
+    ETHU: { pre:null, preChg:null, reg:null, regChg:null, post:null, postChg:null, state:'CLOSED' },
+    BMNU: { pre:null, preChg:null, reg:null, regChg:null, post:null, postChg:null, state:'CLOSED' },
+  },
   btcLongShort:null, ethLongShort:null,
   btcTakerRatio:null, ethTakerRatio:null,
   btcFuturesPrice:null, ethFuturesPrice:null,
@@ -586,6 +706,27 @@ async function fetchCoinbasePremium() {
     }
     D.coinbasePremiumDays = Math.max(0, Math.floor((Date.now() - stored.startTs) / (1000*60*60*24)));
   }
+}
+
+async function fetchStockData() {
+  const PROXY = 'https://api.cors.lol/?url=';
+  const yUrl = 'https://query1.finance.yahoo.com/v7/finance/quote?symbols=ETHU,BMNU&fields=regularMarketPrice,regularMarketChangePercent,preMarketPrice,preMarketChangePercent,postMarketPrice,postMarketChangePercent,marketState';
+  const r = await fetch(PROXY + encodeURIComponent(yUrl));
+  const json = await r.json();
+  const results = json.quoteResponse?.result || [];
+  results.forEach(q => {
+    const s = D.stocks[q.symbol];
+    if (!s) return;
+    s.reg     = q.regularMarketPrice ?? null;
+    s.regChg  = q.regularMarketChangePercent ?? null;
+    s.pre     = q.preMarketPrice ?? null;
+    s.preChg  = q.preMarketChangePercent ?? null;
+    s.post    = q.postMarketPrice ?? null;
+    s.postChg = q.postMarketChangePercent ?? null;
+    // marketState: PRE | PREPRE | REGULAR | POST | POSTPOST | CLOSED
+    const ms = q.marketState || 'CLOSED';
+    s.state = ms.startsWith('PRE') ? 'PRE' : ms === 'REGULAR' ? 'REG' : ms.startsWith('POST') ? 'POST' : 'CLOSED';
+  });
 }
 
 async function fetchBalanceInfo() {
@@ -1092,6 +1233,53 @@ function renderAll() {
     el.className = 'p-chg '+(c>=0?'up':'dn');
   }
 
+  // Stock Panel
+  ['ETHU','BMNU'].forEach(sym => {
+    const s = D.stocks[sym];
+    if (!s) return;
+    const fmtP  = v => v != null ? '$'+v.toFixed(2) : '---';
+    const fmtChg = v => {
+      if (v == null) return {text:'', cls:''};
+      return {text:(v>=0?'+':'')+v.toFixed(2)+'%', cls: v>=0?'pos':'neg'};
+    };
+    // state badge
+    const badge = document.getElementById('stockState-'+sym);
+    if (badge) {
+      const labels = {PRE:'Pre-Mkt', REG:'Regular', POST:'After-Mkt', CLOSED:'Closed'};
+      badge.textContent = labels[s.state] || s.state;
+      badge.className = 'stock-state-badge '+(s.state==='REG'?'REG':s.state==='PRE'?'PRE':s.state==='POST'?'POST':'CLOSED');
+    }
+    // current price = active session price
+    const curPrice = s.state==='PRE' ? s.pre : s.state==='POST' ? s.post : s.reg;
+    const curChg   = s.state==='PRE' ? s.preChg : s.state==='POST' ? s.postChg : s.regChg;
+    const curEl = document.getElementById('stockCur-'+sym);
+    if (curEl) curEl.textContent = fmtP(curPrice);
+    const curChgEl = document.getElementById('stockCurChg-'+sym);
+    if (curChgEl) { const c=fmtChg(curChg); curChgEl.textContent=c.text; curChgEl.className='stock-cur-chg '+c.cls; }
+    // pre session
+    const preEl = document.getElementById('stockPre-'+sym);
+    if (preEl) preEl.textContent = fmtP(s.pre);
+    const preChgEl = document.getElementById('stockPreChg-'+sym);
+    if (preChgEl) { const c=fmtChg(s.preChg); preChgEl.textContent=c.text; preChgEl.className='stock-sess-chg '+c.cls; }
+    // regular session
+    const regEl = document.getElementById('stockReg-'+sym);
+    if (regEl) regEl.textContent = fmtP(s.reg);
+    const regChgEl = document.getElementById('stockRegChg-'+sym);
+    if (regChgEl) { const c=fmtChg(s.regChg); regChgEl.textContent=c.text; regChgEl.className='stock-sess-chg '+c.cls; }
+    // post session
+    const postEl = document.getElementById('stockPost-'+sym);
+    if (postEl) postEl.textContent = fmtP(s.post);
+    const postChgEl = document.getElementById('stockPostChg-'+sym);
+    if (postChgEl) { const c=fmtChg(s.postChg); postChgEl.textContent=c.text; postChgEl.className='stock-sess-chg '+c.cls; }
+    // highlight active session
+    ['pre','reg','post'].forEach(sess => {
+      const el = document.getElementById('stockSess-'+sym+'-'+sess);
+      if (!el) return;
+      const active = (s.state==='PRE'&&sess==='pre')||(s.state==='REG'&&sess==='reg')||(s.state==='POST'&&sess==='post');
+      el.classList.toggle('active-sess', active);
+    });
+  });
+
   // Balance Info
   function fmtKrwBal(n) {
     if (n == null) return '---';
@@ -1150,6 +1338,7 @@ async function init() {
     safe(fetchKrwData),
     safe(fetchFuturesData),
     safe(fetchBalanceInfo),
+    safe(fetchStockData),
   ]);
 
   // 김치 프리미엄 계산 — 업비트 USDT 가격 ÷ 실제 환율

@@ -1,24 +1,24 @@
 {
-  "updatedAt": "2026-02-27T03:09:57.537393+00:00",
+  "updatedAt": "2026-02-27T03:25:41.786595+00:00",
   "stocks": {
-    "ETHU": {
-      "reg": 22.03,
-      "regChg": -5.25,
-      "pre": 23.01,
-      "preChg": -1.03,
-      "post": 21.791,
-      "postChg": -6.28,
-      "prev": 23.25,
+    "EETH": {
+      "reg": 25.16,
+      "regChg": -2.67,
+      "pre": 25.7126,
+      "preChg": -0.53,
+      "post": 25.06,
+      "postChg": -3.06,
+      "prev": 25.85,
       "state": "POST"
     },
-    "BMNU": {
-      "reg": 2.105,
-      "regChg": -10.04,
-      "pre": 2.32,
-      "preChg": -0.85,
-      "post": 2.0715,
-      "postChg": -11.47,
-      "prev": 2.34,
+    "BMNR": {
+      "reg": 20.44,
+      "regChg": -4.93,
+      "pre": 21.4357,
+      "preChg": -0.3,
+      "post": 20.2444,
+      "postChg": -5.84,
+      "prev": 21.5,
       "state": "POST"
     }
   }

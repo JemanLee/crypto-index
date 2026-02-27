@@ -26,6 +26,18 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add stocks.json
-          git diff --staged --quiet && echo "No changes" || git commit -m "chore: update stock prices [skip ci]"
-          git push
+          if git diff --staged --quiet; then
+            echo "No changes to stocks.json"
+          else
+            LAST_MSG=$(git log -1 --format=%s)
+            if echo "$LAST_MSG" | grep -q "update stock prices"; then
+              # 직전 커밋도 stock update면 amend → 히스토리에 1개만 유지
+              git commit --amend --no-edit
+              git push --force-with-lease
+            else
+              # 직전이 일반 커밋이면 새 커밋 생성
+              git commit -m "chore: update stock prices [skip ci]"
+              git push
+            fi
+          fi
 

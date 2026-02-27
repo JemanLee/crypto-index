@@ -220,6 +220,29 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 /* ── UPBIT PRICE ── */
 .p-upbit { font-family:'Space Mono',monospace; font-size:10px; color:var(--text2); margin-top:1px; }
 
+/* ── BALANCE INFO ── */
+.balance-panel {
+  margin:0 18px 14px;
+  background:rgba(0,232,122,.04);
+  border:1px solid rgba(0,232,122,.14);
+  border-radius:14px; padding:12px 16px;
+}
+.balance-title {
+  font-size:9px; font-weight:700; letter-spacing:1.5px;
+  color:var(--green); text-transform:uppercase; margin-bottom:10px;
+}
+.balance-grid {
+  display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;
+}
+.balance-item { display:flex; flex-direction:column; gap:3px; }
+.balance-label { font-size:9px; color:var(--text2); letter-spacing:.5px; }
+.balance-value {
+  font-family:'Space Mono',monospace; font-size:13px; font-weight:700;
+}
+.balance-value.pos { color:var(--green); }
+.balance-value.neg { color:var(--red); }
+.balance-value.neu { color:var(--text); }
+
 /* ── LOADING OVERLAY ── */
 .loading-bar {
   position:fixed; top:0; left:0; right:0; height:2px; z-index:99;
@@ -241,7 +264,7 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
 <!-- HEADER -->
 <div class="hdr">
   <div class="hdr-row">
-    <div class="logo">BOTTOM RADAR v0.8.9</div>
+    <div class="logo">BOTTOM RADAR v0.9.0</div>
     <button class="refresh-btn" id="refreshBtn" onclick="init()">
       <svg id="refreshIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       새로고침
@@ -249,6 +272,25 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
   </div>
   <h1>할 수 있다!!</h1>
   <div class="updated" id="updatedTime">불러오는 중...</div>
+</div>
+
+<!-- BALANCE INFO -->
+<div class="balance-panel">
+  <div class="balance-title">⬡ Balance Info</div>
+  <div class="balance-grid">
+    <div class="balance-item">
+      <span class="balance-label">Profit (Total)</span>
+      <span class="balance-value neu" id="balProfit">---</span>
+    </div>
+    <div class="balance-item">
+      <span class="balance-label">Balance</span>
+      <span class="balance-value neu" id="balBalance">---</span>
+    </div>
+    <div class="balance-item">
+      <span class="balance-label">Target</span>
+      <span class="balance-value neu" id="balTarget">---</span>
+    </div>
+  </div>
 </div>
 
 <!-- PRICES -->
@@ -362,6 +404,7 @@ const D = {
   usdKrw:null, usdtKrw:null,
   btcUpbitKrw:null, ethUpbitKrw:null,
   kimchiPremiumBtc:null, kimchiPremiumEth:null,
+  balProfit:null, balBalance:null, balTarget:null,
   btcLongShort:null, ethLongShort:null,
   btcTakerRatio:null, ethTakerRatio:null,
   btcFuturesPrice:null, ethFuturesPrice:null,
@@ -543,6 +586,15 @@ async function fetchCoinbasePremium() {
     }
     D.coinbasePremiumDays = Math.max(0, Math.floor((Date.now() - stored.startTs) / (1000*60*60*24)));
   }
+}
+
+async function fetchBalanceInfo() {
+  const url = 'https://script.google.com/macros/s/AKfycbxevUgOIG6TfHtFlU4Qq0svSYkBab2JHupZIYANrEP6PX566t6250DI490EyLX6tw1S/exec';
+  const r = await fetch(url);
+  const d = await r.json();
+  if (d.value1 != null) D.balProfit  = Math.round(d.value1);
+  if (d.value2 != null) D.balBalance = Math.round(d.value2);
+  if (d.value3 != null) D.balTarget  = Math.round(d.value3);
 }
 
 async function fetchKrwData() {
@@ -1040,6 +1092,20 @@ function renderAll() {
     el.className = 'p-chg '+(c>=0?'up':'dn');
   }
 
+  // Balance Info
+  function fmtKrwBal(n) {
+    if (n == null) return '---';
+    return (n >= 0 ? '+' : '') + Math.round(n).toLocaleString('ko-KR') + '원';
+  }
+  function balCls(n) { return n == null ? 'neu' : n > 0 ? 'pos' : n < 0 ? 'neg' : 'neu'; }
+
+  const bProfit = document.getElementById('balProfit');
+  if (bProfit) { bProfit.textContent = fmtKrwBal(D.balProfit); bProfit.className = 'balance-value ' + balCls(D.balProfit); }
+  const bBalance = document.getElementById('balBalance');
+  if (bBalance) { bBalance.textContent = D.balBalance != null ? Math.round(D.balBalance).toLocaleString('ko-KR') + '원' : '---'; bBalance.className = 'balance-value neu'; }
+  const bTarget = document.getElementById('balTarget');
+  if (bTarget) { bTarget.textContent = fmtKrwBal(D.balTarget); bTarget.className = 'balance-value ' + balCls(D.balTarget); }
+
   // 업비트 가격
   const btcUpbitEl = document.getElementById('btcUpbit');
   if (btcUpbitEl) btcUpbitEl.textContent = D.btcUpbitKrw ? '₩ '+fmtKrw(D.btcUpbitKrw) : '₩ ---';
@@ -1083,6 +1149,7 @@ async function init() {
     safe(fetchCoinbasePremium),
     safe(fetchKrwData),
     safe(fetchFuturesData),
+    safe(fetchBalanceInfo),
   ]);
 
   // 김치 프리미엄 계산 — 업비트 USDT 가격 ÷ 실제 환율

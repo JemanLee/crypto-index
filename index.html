@@ -709,23 +709,19 @@ async function fetchCoinbasePremium() {
 }
 
 async function fetchStockData() {
-  const PROXY = 'https://api.cors.lol/?url=';
-  const yUrl = 'https://query1.finance.yahoo.com/v7/finance/quote?symbols=ETHU,BMNU&fields=regularMarketPrice,regularMarketChangePercent,preMarketPrice,preMarketChangePercent,postMarketPrice,postMarketChangePercent,marketState';
-  const r = await fetch(PROXY + encodeURIComponent(yUrl));
-  const json = await r.json();
-  const results = json.quoteResponse?.result || [];
-  results.forEach(q => {
-    const s = D.stocks[q.symbol];
+  // stocks.json은 GitHub Actions가 15분마다 자동 생성 → 같은 origin, CORS 없음
+  const r = await fetch('./stocks.json?t=' + Date.now());
+  const d = await r.json();
+  Object.entries(d.stocks || {}).forEach(([sym, q]) => {
+    const s = D.stocks[sym];
     if (!s) return;
-    s.reg     = q.regularMarketPrice ?? null;
-    s.regChg  = q.regularMarketChangePercent ?? null;
-    s.pre     = q.preMarketPrice ?? null;
-    s.preChg  = q.preMarketChangePercent ?? null;
-    s.post    = q.postMarketPrice ?? null;
-    s.postChg = q.postMarketChangePercent ?? null;
-    // marketState: PRE | PREPRE | REGULAR | POST | POSTPOST | CLOSED
-    const ms = q.marketState || 'CLOSED';
-    s.state = ms.startsWith('PRE') ? 'PRE' : ms === 'REGULAR' ? 'REG' : ms.startsWith('POST') ? 'POST' : 'CLOSED';
+    s.reg     = q.reg     ?? null;
+    s.regChg  = q.regChg  ?? null;
+    s.pre     = q.pre     ?? null;
+    s.preChg  = q.preChg  ?? null;
+    s.post    = q.post    ?? null;
+    s.postChg = q.postChg ?? null;
+    s.state   = q.state   || 'CLOSED';
   });
 }
 

@@ -1,0 +1,31 @@
+name: Fetch Stock Prices
+
+on:
+  schedule:
+    # 미국 장전 ~ 장후 (ET 기준 04:00~20:00 = UTC 09:00~01:00)
+    # 평일, 매 5분마다 실행 (GitHub Actions 최소 단위)
+    - cron: '*/5 9-23 * * 1-5'    # UTC 09:00~23:59 (ET 04:00~18:59)
+    - cron: '*/5 0-1  * * 2-6'    # UTC 00:00~01:59 (ET 19:00~20:59, 다음날)
+  workflow_dispatch:               # 수동 실행 버튼
+
+permissions:
+  contents: write                  # stocks.json 커밋 권한
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Fetch stock prices
+        run: python fetch_stocks.py
+
+      - name: Commit & push stocks.json
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add stocks.json
+          git diff --staged --quiet && echo "No changes" || git commit -m "chore: update stock prices [skip ci]"
+          git push
+

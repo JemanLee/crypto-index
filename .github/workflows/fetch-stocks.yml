@@ -2,10 +2,8 @@ name: Fetch Stock Prices
 
 on:
   schedule:
-    # 미국 장전 ~ 장후 (ET 기준 04:00~20:00 = UTC 09:00~01:00)
-    # 평일, 매 5분마다 실행 (GitHub Actions 최소 단위)
-    - cron: '*/5 9-23 * * 1-5'    # UTC 09:00~23:59 (ET 04:00~18:59)
-    - cron: '*/5 0-1  * * 2-6'    # UTC 00:00~01:59 (ET 19:00~20:59, 다음날)
+    # 평일 24시간 5분마다 실행 (주말 제외)
+    - cron: '*/5 * * * 1-5'
   workflow_dispatch:               # 수동 실행 버튼
 
 permissions:

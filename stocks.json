@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-02-27T03:25:41.786595+00:00",
+  "updatedAt": "2026-02-27T03:32:28.798698+00:00",
   "stocks": {
     "EETH": {
       "reg": 25.16,
@@ -19,6 +19,26 @@
       "post": 20.2444,
       "postChg": -5.84,
       "prev": 21.5,
+      "state": "POST"
+    },
+    "ETHU": {
+      "reg": 22.03,
+      "regChg": -5.25,
+      "pre": 23.01,
+      "preChg": -1.03,
+      "post": 21.791,
+      "postChg": -6.28,
+      "prev": 23.25,
+      "state": "POST"
+    },
+    "BMNU": {
+      "reg": 2.105,
+      "regChg": -10.04,
+      "pre": 2.32,
+      "preChg": -0.85,
+      "post": 2.0715,
+      "postChg": -11.47,
+      "prev": 2.34,
       "state": "POST"
     }
   }

@@ -378,6 +378,62 @@ h1 { font-size:21px; font-weight:900; letter-spacing:-.5px; }
         </div>
       </div>
     </div>
+    <!-- ETHU -->
+    <div class="stock-card" id="stockCard-ETHU">
+      <div class="stock-card-header">
+        <span class="stock-sym">ETHU</span>
+        <span class="stock-state-badge CLOSED" id="stockState-ETHU">CLOSED</span>
+      </div>
+      <div class="stock-current">
+        <span class="stock-cur-price" id="stockCur-ETHU">---</span>
+        <span class="stock-cur-chg" id="stockCurChg-ETHU"></span>
+      </div>
+      <div class="stock-sessions">
+        <div class="stock-sess" id="stockSess-ETHU-pre">
+          <span class="stock-sess-lbl">Pre-Market</span>
+          <span class="stock-sess-price" id="stockPre-ETHU">---</span>
+          <span class="stock-sess-chg" id="stockPreChg-ETHU"></span>
+        </div>
+        <div class="stock-sess" id="stockSess-ETHU-reg">
+          <span class="stock-sess-lbl">Regular</span>
+          <span class="stock-sess-price" id="stockReg-ETHU">---</span>
+          <span class="stock-sess-chg" id="stockRegChg-ETHU"></span>
+        </div>
+        <div class="stock-sess" id="stockSess-ETHU-post">
+          <span class="stock-sess-lbl">After-Market</span>
+          <span class="stock-sess-price" id="stockPost-ETHU">---</span>
+          <span class="stock-sess-chg" id="stockPostChg-ETHU"></span>
+        </div>
+      </div>
+    </div>
+    <!-- BMNU -->
+    <div class="stock-card" id="stockCard-BMNU">
+      <div class="stock-card-header">
+        <span class="stock-sym">BMNU</span>
+        <span class="stock-state-badge CLOSED" id="stockState-BMNU">CLOSED</span>
+      </div>
+      <div class="stock-current">
+        <span class="stock-cur-price" id="stockCur-BMNU">---</span>
+        <span class="stock-cur-chg" id="stockCurChg-BMNU"></span>
+      </div>
+      <div class="stock-sessions">
+        <div class="stock-sess" id="stockSess-BMNU-pre">
+          <span class="stock-sess-lbl">Pre-Market</span>
+          <span class="stock-sess-price" id="stockPre-BMNU">---</span>
+          <span class="stock-sess-chg" id="stockPreChg-BMNU"></span>
+        </div>
+        <div class="stock-sess" id="stockSess-BMNU-reg">
+          <span class="stock-sess-lbl">Regular</span>
+          <span class="stock-sess-price" id="stockReg-BMNU">---</span>
+          <span class="stock-sess-chg" id="stockRegChg-BMNU"></span>
+        </div>
+        <div class="stock-sess" id="stockSess-BMNU-post">
+          <span class="stock-sess-lbl">After-Market</span>
+          <span class="stock-sess-price" id="stockPost-BMNU">---</span>
+          <span class="stock-sess-chg" id="stockPostChg-BMNU"></span>
+        </div>
+      </div>
+    </div>
     <!-- BMNR -->
     <div class="stock-card" id="stockCard-BMNR">
       <div class="stock-card-header">
@@ -524,6 +580,8 @@ const D = {
   stocks: {
     EETH: { pre:null, preChg:null, reg:null, regChg:null, post:null, postChg:null, state:'CLOSED' },
     BMNR: { pre:null, preChg:null, reg:null, regChg:null, post:null, postChg:null, state:'CLOSED' },
+    ETHU: { pre:null, preChg:null, reg:null, regChg:null, post:null, postChg:null, state:'CLOSED' },
+    BMNU: { pre:null, preChg:null, reg:null, regChg:null, post:null, postChg:null, state:'CLOSED' },
   },
   btcLongShort:null, ethLongShort:null,
   btcTakerRatio:null, ethTakerRatio:null,
@@ -1230,7 +1288,7 @@ function renderAll() {
   }
 
   // Stock Panel
-  ['EETH','BMNR'].forEach(sym => {
+  ['EETH','BMNR','ETHU','BMNU'].forEach(sym => {
     const s = D.stocks[sym];
     if (!s) return;
     const fmtP  = v => v != null ? '$'+v.toFixed(2) : '---';

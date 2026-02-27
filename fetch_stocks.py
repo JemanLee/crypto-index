@@ -1,5 +1,5 @@
 """
-Fetches EETH & BNMR pre/regular/post-market prices from Yahoo Finance
+Fetches EETH, BMNR & ETHU pre/regular/post-market prices from Yahoo Finance
 and writes stocks.json to the repo root.
 Run by GitHub Actions — no external packages needed (stdlib only).
 """
@@ -7,7 +7,7 @@ import json
 import urllib.request
 from datetime import datetime, timezone
 
-SYMBOLS = ['EETH', 'BMNR']
+SYMBOLS = ['EETH', 'BMNR', 'ETHU', 'BMNU']
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     'Accept': 'application/json,*/*',
